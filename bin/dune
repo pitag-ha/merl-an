@@ -1,0 +1,4 @@
+(executable
+ (public_name ocamlmerlin_tester)
+ (name main)
+ (libraries ppxlib yojson unix))

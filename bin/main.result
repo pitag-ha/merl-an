@@ -1,0 +1,42 @@
+bin/main.ml:184:29: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 182:8
+bin/main.ml:172:17: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 41:4
+bin/main.ml:167:19: Already at definition point
+bin/main.ml:164:8: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 157:4
+bin/main.ml:163:26: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 163:9
+bin/main.ml:163:19: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 161:6
+bin/main.ml:154:29: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 147:23
+bin/main.ml:150:12: /home/sonja/.opam/4.14.0/lib/ocaml/fun.ml 27:4
+bin/main.ml:149:18: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 335:4
+bin/main.ml:148:38: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 147:18
+bin/main.ml:148:33: /home/sonja/.opam/4.14.0/lib/ocaml/filename.ml 317:4
+bin/main.ml:145:17: /home/sonja/.opam/4.14.0/lib/ocaml/format.ml 1365:4
+bin/main.ml:143:21: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 140:17
+bin/main.ml:138:18: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 126:34
+bin/main.ml:113:52: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 29:4
+bin/main.ml:110:72: Not a valid identifier
+bin/main.ml:99:39: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 87:8
+bin/main.ml:99:36: /home/sonja/.opam/4.14.0/lib/ocaml/unix.mli 970:0
+bin/main.ml:98:18: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 491:4
+bin/main.ml:93:49: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 214:4
+bin/main.ml:90:37: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 87:8
+bin/main.ml:90:34: /home/sonja/.opam/4.14.0/lib/ocaml/unix.mli 970:0
+bin/main.ml:83:25: Not a valid identifier
+bin/main.ml:83:25: Not a valid identifier
+bin/main.ml:81:67: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 65:6
+bin/main.ml:78:13: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 230:0
+bin/main.ml:67:34: 'Yojson.Basic.from_channel' seems to originate from 'Read' whose MLL file could not be found
+bin/main.ml:62:41: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 53:22
+bin/main.ml:62:21: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 25:4
+bin/main.ml:58:7: Not a valid identifier
+bin/main.ml:51:63: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 267:4
+bin/main.ml:50:12: Not a valid identifier
+bin/main.ml:43:47: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 480:4
+bin/main.ml:39:7: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 34:6
+bin/main.ml:37:54: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 37:26
+bin/main.ml:35:15: "int" is a builtin, and it is therefore impossible to jump to its definition
+bin/main.ml:26:18: /home/sonja/.opam/4.14.0/lib/ppxlib/location.ml 1:0
+bin/main.ml:21:11: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 11:2
+bin/main.ml:17:22: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 96:0
+bin/main.ml:15:22: /home/sonja/Documents/Tarides/projects/ocamlmerlin_tester/ocamlmerlin_tester/bin/main.ml 8:6
+bin/main.ml:11:20: /home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml 95:0
+bin/main.ml:8:27: /home/sonja/.opam/4.14.0/lib/ocaml/string.ml 24:0
