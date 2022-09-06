@@ -17,8 +17,9 @@ module Timing = struct
 
   let print ppf { timings; max_timing; file_id; query_type; sample_id } =
     let timings_formatter =
-      Format.pp_print_list (fun ppf num ->
-          if num = max_timing then Format.fprintf ppf "@{<bold>%i@}" num
+      let pp_sep ppf () = Format.fprintf ppf ", " in
+      Format.pp_print_list ~pp_sep (fun ppf num ->
+          if num = max_timing then Format.fprintf ppf "%i" num (* FIXME: wanted to print this bolt to make it more visible, however making it bolt didn't work. *)
           else Format.fprintf ppf "%i" num)
     in
     Format.fprintf ppf "%i: [%a] %d %s" sample_id timings_formatter timings

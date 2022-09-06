@@ -30,10 +30,18 @@ let print_loc ppf loc =
   let col = pos.pos_cnum - pos.pos_bol - 1 in
   Format.fprintf ppf "%i:%i" line col
 
+let reservoir_sampling ~reservoir_size ~state i =
+  (* see algorithm R in https://en.wikipedia.org/wiki/Reservoir_sampling *)
+  let w = Random.State.float state 1.0
+
+in ()
+  
+
 let enumerate ast =
   let folder =
     object
       inherit [int * Location.t list] Ast_traverse.fold
+      (* Possible FIXME: a longident such as [M.f] is only taken into account once all together as opposed to splitting it into [M] and [f]. to fix that, the parsing of the longident would have to be done manually (as opposed to further recursing it) in order to remember their individual location, which isn't reflected in the AST node*)
       method! longident_loc lid (nb, locs) = (nb + 1, lid.loc :: locs)
     end
   in
@@ -208,9 +216,9 @@ let () =
       stop_server merlin;
       let _ = (timing_data, query_data, file_data) in
       Data.dump ~formatter:Data.Timing.print
-        ~filename:"ocamlmerlin_tester/timing.result" timing_data;
+        ~filename:"timing.result" timing_data;
       Data.dump ~formatter:Data.Query_reply.print
-        ~filename:"ocamlmerlin_tester/query_replies.result" query_data;
+        ~filename:"query_replies.result" query_data;
       Data.dump ~formatter:Data.File.print
-        ~filename:"ocamlmerlin_tester/files.result" file_data
+        ~filename:"files.result" file_data
   | Error (`Msg err) -> Printf.eprintf "%s" err
