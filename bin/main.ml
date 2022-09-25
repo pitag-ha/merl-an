@@ -30,22 +30,42 @@ let print_loc ppf loc =
   let col = pos.pos_cnum - pos.pos_bol - 1 in
   Format.fprintf ppf "%i:%i" line col
 
-let reservoir_sampling ~reservoir_size ~state i =
-  (* see algorithm R in https://en.wikipedia.org/wiki/Reservoir_sampling *)
-  let w = Random.State.float state 1.0
+let update_reservoir_sample ~size ~i ~w ~new_input ~input_index ~state samples =
+  if input_index < size
+    then let () = samples.(input_index) <- new_input in i, w
+    else
+      if input_index = i then
+        let new_i =
+          let r = Random.State.float state 1.0 in
+          i + int_of_float (log r /. log (1. -. w)) + 1 in
+        let random_index = Random.State.int state size in
+        let () = samples.(random_index) <- new_input in
+        let new_w =
+          let r = Random.State.float state 1.0 in
+          w *. exp ((log r) /. (float_of_int size)) in
+        new_i, new_w
+      else i, w
 
-in ()
-  
-
-let enumerate ast =
+let enumerate ~k ~state ast =
   let folder =
     object
-      inherit [int * Location.t list] Ast_traverse.fold
+      inherit [int * Location.t Array.t * int * float] Ast_traverse.fold
       (* Possible FIXME: a longident such as [M.f] is only taken into account once all together as opposed to splitting it into [M] and [f]. to fix that, the parsing of the longident would have to be done manually (as opposed to further recursing it) in order to remember their individual location, which isn't reflected in the AST node*)
-      method! longident_loc lid (nb, locs) = (nb + 1, lid.loc :: locs)
+      method! longident_loc lid (nb, a, i, w) =
+        let new_i, new_w = update_reservoir_sample ~size:k ~i ~w ~new_input:lid.loc ~input_index:nb ~state a in
+        (nb + 1, a, new_i, new_w)
     end
   in
-  folder#structure ast (0, [])
+  let a = Array.make k Location.none in
+  let initial_w =
+    let r = Random.State.float state 1.0 in
+    exp ((log r) /. (float_of_int k)) in
+  let inital_i =
+    let r = Random.State.float state 1.0 in
+    k + int_of_float (log r /. log (1. -. initial_w)) + 1 in
+  let population_size, sample_array, _, _ = folder#structure ast (0, a, inital_i, initial_w) in
+  if k <= population_size then Array.to_list sample_array else List.init population_size (fun i -> sample_array.(i))
+
 
 let parse_impl sourcefile =
   let ic = open_in sourcefile in
@@ -108,19 +128,15 @@ end
 
 module Timing_tree = Bin_tree.Make (Timing_data)
 
-let add_data ~merlin ~file_id ~sample_id_counter timing_data query_data
+let add_data ~merlin ~file_id ~sample_id_counter ~sample_size timing_data query_data
     sourcefile =
   let file = Fpath.to_string sourcefile in
   match parse_impl file with
   | exception _ -> Error (timing_data, query_data, sample_id_counter)
   | ast ->
-      let nb_locs, locs = enumerate ast in
       let seed = int_array_of_string file in
       let state = Random.State.make seed in
-      let sample_locs =
-        let keep_probability = nb_locs / 50 in
-        List.filter (fun _ -> Random.State.int state keep_probability = 0) locs
-      in
+      let sample_locs = enumerate ~k:sample_size ~state ast in
       let rec loop timing_data query_data sample_id locations =
         match locations with
         | [] -> (timing_data, query_data, sample_id)
@@ -172,6 +188,7 @@ let () =
   (* TODO: add arg to get the number of samples. defaults to 30 *)
   (* TODO: add arg to get the number of repeats per concrete query. defaults to 10 *)
   (* TODO: add arg to get which query types the user wants to run. defaults to all supported query types *)
+  let sample_size = 30 in
   let args = ref [] in
   Arg.parse [] (fun arg -> args := arg :: !args) usage;
   let merlin, path =
@@ -191,7 +208,7 @@ let () =
               let file_id = last_file_id + 1 in
               let sample_id_counter = last_sample_id + 1 in
               let updated_data =
-                add_data ~merlin ~file_id ~sample_id_counter timing_data
+                add_data ~merlin ~file_id ~sample_id_counter ~sample_size timing_data
                   query_data file
               in
               let timing_data, query_data, id =
