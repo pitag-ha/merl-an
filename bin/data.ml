@@ -13,33 +13,38 @@ module Timing = struct
     file_id : int;
     query_type : string;
     sample_id : int;
-  }
+  }  [@@deriving yojson]
 
-  let print ppf { timings; max_timing; file_id; query_type; sample_id } =
-    let timings_formatter =
+  let print ppf data =
+    (* let timings_formatter =
       let pp_sep ppf () = Format.fprintf ppf ", " in
       Format.pp_print_list ~pp_sep (fun ppf num ->
-          if num = max_timing then Format.fprintf ppf "%i" num (* FIXME: wanted to print this bolt to make it more visible, however making it bolt didn't work. *)
+          if num = max_timing then Format.fprintf ppf "%i" num
+          (* FIXME: wanted to print this bolt to make it more visible, however making it bolt didn't work. *)
           else Format.fprintf ppf "%i" num)
     in
     Format.fprintf ppf "%i: [%a] %d %s" sample_id timings_formatter timings
-      file_id query_type
+      file_id query_type *)
+    Format.fprintf ppf "%s" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
 module Query_reply = struct
   type t = { sample_id : int; reply : Yojson.Basic.t }
-
   let print ppf { sample_id; reply } =
-    Format.fprintf ppf "%i: %s" sample_id (Yojson.Basic.to_string reply)
+    let full_json = `Assoc [("sample_id", `Int sample_id); ("reply", reply)] in
+    Format.fprintf ppf "%s" (Yojson.Basic.to_string full_json)
 end
 
 module File = struct
   type t = { file_id : int; filename : Fpath.t }
 
   let print ppf { file_id; filename } =
-    Format.fprintf ppf "%i: %s" file_id (Fpath.to_string filename)
+    let json = `Assoc [("file_id", `Int file_id); ("filename", `String (Fpath.to_string filename))] in
+    Format.fprintf ppf "%s" (Yojson.Basic.to_string json)
 end
 
 module Query_type = struct
-  type t = { query_type : string; exact_cmd : string }
+  type t = { query_type : string; exact_cmd : string } [@@deriving yojson]
+  let _print ppf data =
+    Format.fprintf ppf "%s" (Yojson.Safe.to_string (yojson_of_t data))
 end

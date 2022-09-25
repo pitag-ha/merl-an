@@ -216,7 +216,7 @@ let () =
                 | Ok (timing_data, query_data, sample_id) ->
                     (timing_data, query_data, sample_id)
                 | Error (timing_data, query_data, sample_id) ->
-                    (* TODO: for persistance of errors, don't just log this, put also add it to an error file *)
+                    (* TODO: for persistance of errors, don't just log this, but also add it to an error file *)
                     Printf.eprintf
                       "Error: file %s couldn't be parsed and was ignored."
                       (Fpath.to_string file);
@@ -233,9 +233,9 @@ let () =
       stop_server merlin;
       let _ = (timing_data, query_data, file_data) in
       Data.dump ~formatter:Data.Timing.print
-        ~filename:"timing.result" timing_data;
+        ~filename:"timing.json" timing_data;
       Data.dump ~formatter:Data.Query_reply.print
-        ~filename:"query_replies.result" query_data;
+        ~filename:"query_replies.json" query_data;
       Data.dump ~formatter:Data.File.print
-        ~filename:"files.result" file_data
+        ~filename:"files.json" file_data
   | Error (`Msg err) -> Printf.eprintf "%s" err
