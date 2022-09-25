@@ -192,9 +192,9 @@ let () =
   let sample_size = 30 in
   let args = ref [] in
   Arg.parse [] (fun arg -> args := arg :: !args) usage;
-  let merlin, path =
+  let merlin, path, proj_name =
     match !args with
-    | [ path; merlin ] -> (merlin, path)
+    | [ prof_name; path; merlin ] -> (merlin, path, prof_name)
     | _ ->
         Arg.usage [] usage;
         exit 1
@@ -219,7 +219,7 @@ let () =
                 | Error (timing_data, query_data, sample_id) ->
                     (* TODO: for persistance of errors, don't just log this, but also add it to an error file *)
                     Printf.eprintf
-                      "Error: file %s couldn't be parsed and was ignored."
+                      "Error: file %s couldn't be parsed and was ignored.\n"
                       (Fpath.to_string file);
                     (timing_data, query_data, sample_id)
               in
@@ -232,11 +232,16 @@ let () =
         loop ~last_sample_id:0 ~last_file_id:0 [] [] [] files
       in
       stop_server merlin;
+      let target_folder = "data/" ^ proj_name in
+      if not (Sys.file_exists (target_folder)) then
+        (* FIXME: this isn't setting the permissions right *)
+        (* TODO: if data for that project already exists, prompt the user if they want to override it *)
+        Sys.mkdir target_folder (int_of_string "0x777");
       let _ = (timing_data, query_data, file_data) in
       Data.dump ~formatter:Data.Timing.print
-        ~filename:"timing.json" timing_data;
+        ~filename:(target_folder ^ "/timing.json") timing_data;
       Data.dump ~formatter:Data.Query_reply.print
-        ~filename:"query_replies.json" query_data;
+        ~filename:(target_folder ^ "/query_replies.json") query_data;
       Data.dump ~formatter:Data.File.print
-        ~filename:"files.json" file_data
+        ~filename:(target_folder ^ "/files.json") file_data
   | Error (`Msg err) -> Printf.eprintf "%s" err

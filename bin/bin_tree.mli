@@ -1,3 +1,5 @@
+(* TODO: check if using a binary tree actually makes this more performant then e.g. a list which is optimized by the compiler*)
+
 module Make (Data : Map.OrderedType) : sig
   type 'a t
 
