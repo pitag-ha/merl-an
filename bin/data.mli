@@ -29,5 +29,8 @@ module File : sig
 end
 
 module Query_type : sig
-  type t = { query_type : string; exact_cmd : string }
+  type t = {
+    query_type : string;
+    exact_cmd : Ppxlib.Location.t -> string -> string;
+  }
 end
