@@ -8,16 +8,20 @@ module Timing : sig
   type t = {
     timings : int list;
     max_timing : int;
-    file_id : int;
-    query_type : string;
+    file_name : string;
+    query_type_name : string;
     sample_id : int;
   }
 
   val print : Format.formatter -> t -> unit
 end
 
-module Query_reply : sig
-  type t = { sample_id : int; reply : Yojson.Basic.t }
+module Query_info : sig
+  type t = {
+    sample_id : int;
+    merlin_reply : Yojson.Basic.t;
+    loc : Cursor_loc.t;
+  }
 
   val print : Format.formatter -> t -> unit
 end
@@ -30,7 +34,8 @@ end
 
 module Query_type : sig
   type t = {
-    query_type : string;
-    exact_cmd : Ppxlib.Location.t -> string -> string;
+    name : string;
+    cmd : Ppxlib.Location.t -> string -> string;
+    nodes : Cursor_loc.corr_node list;
   }
 end

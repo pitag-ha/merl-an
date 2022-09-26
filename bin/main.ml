@@ -22,61 +22,6 @@ let int_array_of_string str =
   done;
   array
 
-let print_loc ppf loc =
-  let open Location in
-  let open Lexing in
-  let pos = loc.loc_end in
-  let line = pos.pos_lnum in
-  let col = pos.pos_cnum - pos.pos_bol - 1 in
-  Format.fprintf ppf "%i:%i" line col
-
-let update_reservoir_sample ~size ~i ~w ~new_input ~input_index ~state samples =
-  if input_index < size then
-    let () = samples.(input_index) <- new_input in
-    (i, w)
-  else if input_index = i then
-    let new_i =
-      let r = Random.State.float state 1.0 in
-      i + int_of_float (log r /. log (1. -. w)) + 1
-    in
-    let random_index = Random.State.int state size in
-    let () = samples.(random_index) <- new_input in
-    let new_w =
-      let r = Random.State.float state 1.0 in
-      w *. exp (log r /. float_of_int size)
-    in
-    (new_i, new_w)
-  else (i, w)
-
-let enumerate ~k ~state ast =
-  let folder =
-    object
-      inherit [int * Location.t Array.t * int * float] Ast_traverse.fold
-
-      (* Possible FIXME: a longident such as [M.f] is only taken into account once all together as opposed to splitting it into [M] and [f]. to fix that, the parsing of the longident would have to be done manually (as opposed to further recursing it) in order to remember their individual location, which isn't reflected in the AST node*)
-      method! longident_loc lid (nb, a, i, w) =
-        let new_i, new_w =
-          update_reservoir_sample ~size:k ~i ~w ~new_input:lid.loc
-            ~input_index:nb ~state a
-        in
-        (nb + 1, a, new_i, new_w)
-    end
-  in
-  let a = Array.make k Location.none in
-  let initial_w =
-    let r = Random.State.float state 1.0 in
-    exp (log r /. float_of_int k)
-  in
-  let inital_i =
-    let r = Random.State.float state 1.0 in
-    k + int_of_float (log r /. log (1. -. initial_w)) + 1
-  in
-  let population_size, sample_array, _, _ =
-    folder#structure ast (0, a, inital_i, initial_w)
-  in
-  if k <= population_size then Array.to_list sample_array
-  else List.init population_size (fun i -> sample_array.(i))
-
 let parse_impl sourcefile =
   let ic = open_in sourcefile in
   Fun.protect
@@ -84,6 +29,7 @@ let parse_impl sourcefile =
     (fun () -> Parse.implementation (Lexing.from_channel ic))
 
 let stop_server merlin =
+  (* FIXME: only stop the server if it was actually started (sample set could be empty) *)
   let command = merlin ^ " server stop-server" in
   match Sys.command command with
   | 255 -> ()
@@ -138,35 +84,38 @@ end
 
 module Timing_tree = Bin_tree.Make (Timing_data)
 
-let add_data ~file_id ~sample_id_counter ~sample_size ~query_type timing_data
-    query_data sourcefile =
+let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
+    sourcefile =
   let file = Fpath.to_string sourcefile in
   match parse_impl file with
   | exception _ -> Error (timing_data, query_data, sample_id_counter)
   | ast ->
       let seed = int_array_of_string file in
       let state = Random.State.make seed in
-      let sample_locs = enumerate ~k:sample_size ~state ast in
-      let rec loop timing_data query_data sample_id locations =
-        match locations with
+      let sample_set =
+        Cursor_loc.create_sample_set ~k:sample_size ~state
+          ~nodes:query_type.Data.Query_type.nodes ast
+      in
+      let rec loop timing_data query_data sample_id samples =
+        match samples with
         | [] -> (timing_data, query_data, sample_id)
-        | location :: rest ->
-            let cmd = query_type.Data.Query_type.exact_cmd location file in
-            let timings, max_timing, reply = get_sample_data cmd in
+        | (loc, _) :: rest ->
+            let cmd = query_type.Data.Query_type.cmd loc file in
+            let timings, max_timing, merlin_reply = get_sample_data cmd in
             let timing =
               {
                 Data.Timing.timings;
                 max_timing;
-                file_id;
-                query_type = query_type.Data.Query_type.query_type;
+                file_name = file;
+                query_type_name = query_type.Data.Query_type.name;
                 sample_id;
               }
             in
-            let response = { Data.Query_reply.sample_id; reply } in
+            let response = { Data.Query_info.sample_id; merlin_reply; loc } in
             loop (timing :: timing_data) (response :: query_data)
               (sample_id + 1) rest
       in
-      Ok (loop timing_data query_data (sample_id_counter + 1) sample_locs)
+      Ok (loop timing_data query_data (sample_id_counter + 1) sample_set)
 
 let get_files ~extension path =
   (* TODO: exclude files in _build/ and _opam/ *)
@@ -205,50 +154,79 @@ let () =
         Arg.usage [] usage;
         exit 1
   in
-  let cmd location file =
-    Format.asprintf
-      "%s server locate -look-for ml -position '%a' -index 0 -filename \
-       %s < %s"
-      merlin print_loc location file file
-  in
   let query_types =
-    [ { Data.Query_type.query_type = "locate"; exact_cmd = cmd } ]
+    (* TODO: also add [complete-prefix] command. that's a little more complex than the other commands since, aside location and file name, it also requires a prefix of the identifier as input. *)
+    let locate =
+      let cmd location file =
+        Format.asprintf
+          "%s server locate -look-for ml -position '%a' -index 0 -filename %s \
+           < %s"
+          merlin (Cursor_loc.print End) location file file
+      in
+      { Data.Query_type.name = "locate"; cmd; nodes = [ Cursor_loc.Longident ] }
+    in
+    let case_analysis =
+      let cmd location file =
+        Format.asprintf
+          "%s server case-analysis -start '%a' -end '%a' -filename %s < %s"
+          merlin (Cursor_loc.print Start) location (Cursor_loc.print End)
+          location file file
+      in
+      {
+        Data.Query_type.name = "case-analysis";
+        cmd;
+        nodes = [ Cursor_loc.Expression; Cursor_loc.Var_pattern ];
+      }
+    in
+    let type_enclosing =
+      let cmd location file =
+        Format.asprintf
+          "%s server type-enclosing -position '%a' -filename %s < %s" merlin
+          (Cursor_loc.print End) location file file
+      in
+      {
+        Data.Query_type.name = "type-enclosing";
+        cmd;
+        nodes = [ Cursor_loc.Expression ];
+      }
+    in
+    let occurrences =
+      let cmd location file =
+        Format.asprintf
+          "%s server occurrences -identifier-at '%a' -filename %s < %s" merlin
+          (Cursor_loc.print End) location file file
+      in
+      {
+        Data.Query_type.name = "occurrences";
+        cmd;
+        nodes = [ Cursor_loc.Longident ];
+      }
+    in
+    [ locate; case_analysis; type_enclosing; occurrences ]
   in
   match get_files ~extension:"ml" path with
   | Ok files ->
-      let timing_data, query_data, file_data, _num_samples =
-        let rec loop ~last_sample_id ~last_file_id timing_data query_data
-            file_data query_types = function
-          | [] -> (timing_data, query_data, file_data, last_sample_id)
-          | file :: rest_files -> (
-              match query_types with
-              | query_type :: _rest_queries ->
-                  (* TODO: also dump information about query type to data file *)
-                  let file_id = last_file_id + 1 in
-                  let sample_id_counter = last_sample_id + 1 in
-                  let updated_data =
-                    add_data ~file_id ~sample_id_counter ~sample_size
-                      ~query_type timing_data query_data file
-                  in
-                  let timing_data, query_data, id =
-                    match updated_data with
-                    | Ok (timing_data, query_data, sample_id) ->
-                        (timing_data, query_data, sample_id)
-                    | Error (timing_data, query_data, sample_id) ->
-                        (* TODO: for persistance of errors, don't just log this, but also add it to an error file *)
-                        Printf.eprintf
-                          "Error: file %s couldn't be parsed and was ignored.\n"
-                          (Fpath.to_string file);
-                        (timing_data, query_data, sample_id)
-                  in
-                  let file_data =
-                    { Data.File.file_id; filename = file } :: file_data
-                  in
-                  loop ~last_sample_id:id ~last_file_id:file_id timing_data
-                    query_data file_data query_types rest_files
-              | [] -> (timing_data, query_data, file_data, last_sample_id))
+      let _num_samples, timing_data, query_data =
+        let f (last_sample_id, timing_data, query_data) (file, query_type) =
+          let sample_id_counter = last_sample_id + 1 in
+          let updated_data =
+            add_data ~sample_id_counter ~sample_size ~query_type timing_data
+              query_data file
+          in
+          let timing_data, query_data, id =
+            match updated_data with
+            | Ok (timing_data, query_data, sample_id) ->
+                (timing_data, query_data, sample_id)
+            | Error (timing_data, query_data, sample_id) ->
+                (* TODO: for persistance of errors, don't just log this, but also add it to an error file *)
+                Printf.eprintf
+                  "Error: file %s couldn't be parsed and was ignored.\n"
+                  (Fpath.to_string file);
+                (timing_data, query_data, sample_id)
+          in
+          (id, timing_data, query_data)
         in
-        loop ~last_sample_id:0 ~last_file_id:0 [] [] [] query_types files
+        List.fold_over_product ~l1:files ~l2:query_types ~init:(0, [], []) f
       in
       stop_server merlin;
       let target_folder = "data/" ^ proj_name in
@@ -256,14 +234,10 @@ let () =
         (* FIXME: this isn't setting the permissions right *)
         (* TODO: if data for that project already exists, prompt the user if they want to override it *)
         Sys.mkdir target_folder (int_of_string "0x777");
-      let _ = (timing_data, query_data, file_data) in
       Data.dump ~formatter:Data.Timing.print
         ~filename:(target_folder ^ "/timing.json")
         timing_data;
-      Data.dump ~formatter:Data.Query_reply.print
-        ~filename:(target_folder ^ "/query_replies.json")
-        query_data;
-      Data.dump ~formatter:Data.File.print
-        ~filename:(target_folder ^ "/files.json")
-        file_data
+      Data.dump ~formatter:Data.Query_info.print
+        ~filename:(target_folder ^ "/query_info.json")
+        query_data
   | Error (`Msg err) -> Printf.eprintf "%s" err
