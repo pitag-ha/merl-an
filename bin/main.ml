@@ -121,8 +121,16 @@ let get_files ~extension path =
   (* TODO: exclude files in _build/ and _opam/ *)
   let open Result.Syntax in
   let* path = Fpath.of_string path in
+  let traverse =
+    let do_exclude path =
+      let excluded_folders = [ "_build"; "_opam" ] in
+      let folder_name = Fpath.to_string @@ Fpath.base path in
+      not (List.mem folder_name excluded_folders)
+    in
+    `Sat (fun path -> Ok (do_exclude path))
+  in
   let* files =
-    Bos.OS.Path.fold
+    Bos.OS.Path.fold ~traverse
       (fun file acc ->
         if Fpath.has_ext extension file then file :: acc else acc)
       [] [ path ]
@@ -140,7 +148,7 @@ let usage = "ocamlmerlin_bench MERLIN PATH"
 
 let () =
   (* TODO: add arg for [server] / [single] switch. when [server] is chosen, make an ignored query run on each file before starting the data collection to populate the cache*)
-  (* TODO: add arg to get the number of samples. defaults to 30 *)
+  (* TODO: add arg to get the number of samples. defaults to 30 currently; better N% of AST size *)
   (* TODO: add arg to get the number of repeats per concrete query. defaults to 10 *)
   (* TODO: add arg to get which query types the user wants to run. defaults to all supported query types *)
   (* TODO: add arg to decide whether to do the queries on ml- or mli-files. defaults to ml-files *)
