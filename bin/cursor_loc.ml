@@ -72,11 +72,7 @@ let create_sample_set ~k ~state ~nodes ast =
         super#value_binding vb (nb, a, i, w, true)
 
       method! pattern p (nb, a, i, w, in_vb) =
-        match
-          ( List.mem Var_pattern nodes,
-            in_vb,
-            p.ppat_desc )
-        with
+        match (List.mem Var_pattern nodes, in_vb, p.ppat_desc) with
         | true, false, Ppat_var { txt = _; loc } ->
             let new_i, new_w =
               update_reservoir_sample ~size:k ~i ~w ~new_loc:loc ~input_index:nb

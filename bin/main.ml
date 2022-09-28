@@ -84,8 +84,18 @@ end
 
 module Timing_tree = Bin_tree.Make (Timing_data)
 
+let init_merlin_cache ~timing_data ~query_data ~sample_id_counter ~query_type
+    ~file = function
+  | [] -> Error (timing_data, query_data, sample_id_counter)
+  | (hd, _) :: rest_samples ->
+      let cmd = query_type.Data.Query_type.cmd hd file in
+      (* TODO: only do this when running [ocamlmerlin server], not when runing [ocamlmerlin single] *)
+      let _ = query cmd in
+      Ok rest_samples
+
 let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
     sourcefile =
+  let open Result.Syntax in
   let file = Fpath.to_string sourcefile in
   match parse_impl file with
   | exception _ -> Error (timing_data, query_data, sample_id_counter)
@@ -95,6 +105,10 @@ let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
       let sample_set =
         Cursor_loc.create_sample_set ~k:sample_size ~state
           ~nodes:query_type.Data.Query_type.nodes ast
+      in
+      let* samples_after_init =
+        init_merlin_cache ~timing_data ~query_data ~sample_id_counter
+          ~query_type ~file sample_set
       in
       let rec loop timing_data query_data sample_id samples =
         match samples with
@@ -115,7 +129,8 @@ let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
             loop (timing :: timing_data) (response :: query_data)
               (sample_id + 1) rest
       in
-      Ok (loop timing_data query_data (sample_id_counter + 1) sample_set)
+      Ok
+        (loop timing_data query_data (sample_id_counter + 1) samples_after_init)
 
 let get_files ~extension path =
   (* TODO: exclude files in _build/ and _opam/ *)
@@ -148,7 +163,7 @@ let usage = "ocamlmerlin_bench MERLIN PATH"
 
 let () =
   (* TODO: add arg for [server] / [single] switch. when [server] is chosen, make an ignored query run on each file before starting the data collection to populate the cache*)
-  (* TODO: add arg to get the number of samples. defaults to 30 currently; better N% of AST size *)
+  (* TODO: add arg to get the number of samples. defaults to 30 currently; better N% of AST size with a minimum of 2 (two instead of one since one of the two will be considered the cache initializer and will be ignored) *)
   (* TODO: add arg to get the number of repeats per concrete query. defaults to 10 *)
   (* TODO: add arg to get which query types the user wants to run. defaults to all supported query types *)
   (* TODO: add arg to decide whether to do the queries on ml- or mli-files. defaults to ml-files *)
