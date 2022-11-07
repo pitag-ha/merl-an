@@ -26,7 +26,10 @@ let parse_impl sourcefile =
   let ic = open_in sourcefile in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
-    (fun () -> Parse.implementation (Lexing.from_channel ic))
+    (fun () ->
+      let lb = Lexing.from_channel ic in
+      Ppxlib.Location.init lb sourcefile;
+      Parse.implementation lb)
 
 let stop_server merlin =
   (* FIXME: only stop the server if it was actually started (sample set could be empty) *)
