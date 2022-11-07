@@ -26,11 +26,11 @@ module Query_info : sig
   val print : Format.formatter -> t -> unit
 end
 
-module File : sig
-  type t = { file_id : int; filename : Fpath.t }
+(* module File : sig
+     type t = { file_id : int; filename : Fpath.t }
 
-  val print : Format.formatter -> t -> unit
-end
+     val print : Format.formatter -> t -> unit
+   end *)
 
 module Query_type : sig
   type t = {
@@ -38,4 +38,14 @@ module Query_type : sig
     cmd : Ppxlib.Location.t -> string -> string;
     nodes : Cursor_loc.corr_node list;
   }
+end
+
+module Metadata : sig
+  (* TODO: add more metadata, such as:
+     - the size of the AST per file
+     -  ["repro" : { <sample_id> : <concrete cmd> } (for reproducability)
+  *)
+  type t = { total_time : float; query_time : float }
+
+  val print : Format.formatter -> t -> unit
 end

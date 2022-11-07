@@ -4,7 +4,8 @@ let dump ~formatter ~filename data =
     ~finally:(fun () -> close_out_noerr oc)
     (fun () ->
       let ppf = Format.formatter_of_out_channel oc in
-      Format.pp_print_list ~pp_sep:Format.pp_print_newline formatter ppf data)
+      Format.pp_print_list ~pp_sep:Format.pp_print_newline formatter ppf data
+      )
 
 module Timing = struct
   type t = {
@@ -26,7 +27,7 @@ module Timing = struct
        in
        Format.fprintf ppf "%i: [%a] %d %s" sample_id timings_formatter timings
          file_id query_type *)
-    Format.fprintf ppf "%s" (Yojson.Safe.to_string (yojson_of_t data))
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
 module Query_info = struct
@@ -45,22 +46,22 @@ module Query_info = struct
           ("loc", `String (Cursor_loc.pprint loc));
         ]
     in
-    Format.fprintf ppf "%s" (Yojson.Basic.to_string full_json)
+    Format.fprintf ppf "%s%!" (Yojson.Basic.to_string full_json)
 end
 
-module File = struct
-  type t = { file_id : int; filename : Fpath.t }
+(* module File = struct
+     type t = { file_id : int; filename : Fpath.t }
 
-  let print ppf { file_id; filename } =
-    let json =
-      `Assoc
-        [
-          ("file_id", `Int file_id);
-          ("filename", `String (Fpath.to_string filename));
-        ]
-    in
-    Format.fprintf ppf "%s" (Yojson.Basic.to_string json)
-end
+     let print ppf { file_id; filename } =
+       let json =
+         `Assoc
+           [
+             ("file_id", `Int file_id);
+             ("filename", `String (Fpath.to_string filename));
+           ]
+       in
+       Format.fprintf ppf "%s" (Yojson.Basic.to_string json)
+   end *)
 
 module Query_type = struct
   (* FIXME: make Fpath.t out of the second parameter of [cmd] (it represents the filenmae) *)
@@ -72,5 +73,16 @@ module Query_type = struct
   [@@deriving yojson]
 
   let _print ppf data =
-    Format.fprintf ppf "%s" (Yojson.Safe.to_string (yojson_of_t data))
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
+end
+
+module Metadata = struct
+  (* TODO: add more metadata, such as:
+     - the size of the AST per file
+     -  ["repro" : { <sample_id> : <concrete cmd> } (for reproducability)
+  *)
+  type t = { total_time : float; query_time : float } [@@deriving yojson]
+
+  let print ppf data =
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end

@@ -45,12 +45,15 @@ let get_timing = function
       | _ -> failwith "merlin gave bad output")
   | _ -> failwith "merlin gave bad output"
 
-let query cmd =
+let query ~query_time cmd =
+  let start_time = Sys.time () in
   let ic = Unix.open_process_in cmd in
   match Yojson.Basic.from_channel ic with
   | json -> (
       match Unix.close_process_in ic with
-      | Unix.WEXITED 0 -> json
+      | Unix.WEXITED 0 ->
+          let updated_query_time = query_time +. Sys.time () -. start_time in
+          (json, updated_query_time)
       | Unix.WEXITED code ->
           failwith ("merlin exited with code " ^ string_of_int code)
       | _ -> failwith "merlin closed unexpectedly")
@@ -59,22 +62,22 @@ let query cmd =
       ignore (Unix.close_process_in ic);
       raise e
 
-let get_sample_data cmd =
-  let first_result = query cmd in
+let get_sample_data ~query_time cmd =
+  let first_result, query_time = query ~query_time cmd in
   let first_timing = get_timing first_result in
-  let rec repeat_query timings max left_indices =
+  let rec repeat_query ~query_time timings max left_indices =
     match left_indices with
     | [] -> (List.rev timings, max)
     | _ :: tl ->
-        let next_res = query cmd in
+        let next_res, query_time = query ~query_time cmd in
         let next_timing = get_timing next_res in
         let max_timing = Int.max max next_timing in
-        repeat_query (next_timing :: timings) max_timing tl
+        repeat_query ~query_time (next_timing :: timings) max_timing tl
   in
   let timings, max_timing =
-    repeat_query [ first_timing ] first_timing @@ List.init 9 Fun.id
+    repeat_query ~query_time [ first_timing ] first_timing @@ List.init 9 Fun.id
   in
-  (timings, max_timing, first_result)
+  (timings, max_timing, first_result, query_time)
 
 module Timing_data = struct
   type t = int * Yojson.Basic.t
@@ -84,21 +87,21 @@ end
 
 module Timing_tree = Bin_tree.Make (Timing_data)
 
-let init_merlin_cache ~timing_data ~query_data ~sample_id_counter ~query_type
-    ~file = function
-  | [] -> Error (timing_data, query_data, sample_id_counter)
+let init_merlin_cache ~query_time ~timing_data ~query_data ~sample_id_counter
+    ~query_type ~file = function
+  | [] -> Error (timing_data, query_data, sample_id_counter, query_time)
   | (hd, _) :: rest_samples ->
       let cmd = query_type.Data.Query_type.cmd hd file in
       (* TODO: only do this when running [ocamlmerlin server], not when runing [ocamlmerlin single] *)
-      let _ = query cmd in
-      Ok rest_samples
+      let _, query_time = query ~query_time cmd in
+      Ok (rest_samples, query_time)
 
-let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
-    sourcefile =
+let add_data ~sample_id_counter ~sample_size ~query_type ~query_time timing_data
+    query_data sourcefile =
   let open Result.Syntax in
   let file = Fpath.to_string sourcefile in
   match parse_impl file with
-  | exception _ -> Error (timing_data, query_data, sample_id_counter)
+  | exception _ -> Error (timing_data, query_data, sample_id_counter, query_time)
   | ast ->
       let seed = int_array_of_string file in
       let state = Random.State.make seed in
@@ -106,16 +109,18 @@ let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
         Cursor_loc.create_sample_set ~k:sample_size ~state
           ~nodes:query_type.Data.Query_type.nodes ast
       in
-      let* samples_after_init =
-        init_merlin_cache ~timing_data ~query_data ~sample_id_counter
-          ~query_type ~file sample_set
+      let* samples_after_init, query_time =
+        init_merlin_cache ~query_time ~timing_data ~query_data
+          ~sample_id_counter ~query_type ~file sample_set
       in
-      let rec loop timing_data query_data sample_id samples =
+      let rec loop ~query_time timing_data query_data sample_id samples =
         match samples with
-        | [] -> (timing_data, query_data, sample_id)
+        | [] -> (timing_data, query_data, sample_id, query_time)
         | (loc, _) :: rest ->
             let cmd = query_type.Data.Query_type.cmd loc file in
-            let timings, max_timing, merlin_reply = get_sample_data cmd in
+            let timings, max_timing, merlin_reply, query_time =
+              get_sample_data ~query_time cmd
+            in
             let timing =
               {
                 Data.Timing.timings;
@@ -126,11 +131,12 @@ let add_data ~sample_id_counter ~sample_size ~query_type timing_data query_data
               }
             in
             let response = { Data.Query_info.sample_id; merlin_reply; loc } in
-            loop (timing :: timing_data) (response :: query_data)
+            loop ~query_time (timing :: timing_data) (response :: query_data)
               (sample_id + 1) rest
       in
       Ok
-        (loop timing_data query_data (sample_id_counter + 1) samples_after_init)
+        (loop ~query_time timing_data query_data (sample_id_counter + 1)
+           samples_after_init)
 
 let get_files ~extension path =
   (* TODO: exclude files in _build/ and _opam/ *)
@@ -159,7 +165,7 @@ let get_files ~extension path =
              extension))
   | _ -> Ok files
 
-let usage = "ocamlmerlin_bench MERLIN PATH"
+let usage = "ocamlmerlin_bench MERLIN PATH PROJ_NAME"
 
 let () =
   (* TODO: add arg for [server] / [single] switch. when [server] is chosen, make an ignored query run on each file before starting the data collection to populate the cache*)
@@ -229,27 +235,28 @@ let () =
   in
   match get_files ~extension:"ml" path with
   | Ok files ->
-      let _num_samples, timing_data, query_data =
-        let f (last_sample_id, timing_data, query_data) (file, query_type) =
+      let _num_samples, timing_data, query_data, query_time =
+        let f (last_sample_id, timing_data, query_data, query_time)
+            (file, query_type) =
           let sample_id_counter = last_sample_id + 1 in
           let updated_data =
-            add_data ~sample_id_counter ~sample_size ~query_type timing_data
-              query_data file
+            add_data ~query_time ~sample_id_counter ~sample_size ~query_type
+              timing_data query_data file
           in
-          let timing_data, query_data, id =
+          let timing_data, query_data, id, query_time =
             match updated_data with
-            | Ok (timing_data, query_data, sample_id) ->
-                (timing_data, query_data, sample_id)
-            | Error (timing_data, query_data, sample_id) ->
+            | Ok (timing_data, query_data, sample_id, query_time) ->
+                (timing_data, query_data, sample_id, query_time)
+            | Error (timing_data, query_data, sample_id, query_time) ->
                 (* TODO: for persistance of errors, don't just log this, but also add it to an error file *)
                 Printf.eprintf
                   "Error: file %s couldn't be parsed and was ignored.\n"
                   (Fpath.to_string file);
-                (timing_data, query_data, sample_id)
+                (timing_data, query_data, sample_id, query_time)
           in
-          (id, timing_data, query_data)
+          (id, timing_data, query_data, query_time)
         in
-        List.fold_over_product ~l1:files ~l2:query_types ~init:(0, [], []) f
+        List.fold_over_product ~l1:files ~l2:query_types ~init:(0, [], [], 0.) f
       in
       stop_server merlin;
       let target_folder = "data/" ^ proj_name in
@@ -262,5 +269,11 @@ let () =
         timing_data;
       Data.dump ~formatter:Data.Query_info.print
         ~filename:(target_folder ^ "/query_info.json")
-        query_data
+        query_data;
+      let total_time = Sys.time () in
+      let metadata = { Data.Metadata.total_time; query_time } in
+      Data.dump ~formatter:Data.Metadata.print
+        ~filename:(target_folder ^ "/metadata.json")
+        [metadata];
+      ()
   | Error (`Msg err) -> Printf.eprintf "%s" err
