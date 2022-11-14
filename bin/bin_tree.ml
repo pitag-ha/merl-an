@@ -1,3 +1,5 @@
+open! Import
+
 module Make (Data : Map.OrderedType) = struct
   type 'a t = 'a node ref
   and 'a node = Leaf | Inner of 'a content

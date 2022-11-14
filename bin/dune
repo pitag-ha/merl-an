@@ -3,4 +3,4 @@
  (name main)
  (libraries ppxlib yojson unix fpath bos)
  (preprocess
-  (pps ppx_yojson_conv)))
+  (pps ppx_deriving_yojson)))

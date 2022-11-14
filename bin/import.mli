@@ -13,3 +13,11 @@ module List : sig
   val fold_over_product :
     l1:'a t -> l2:'b t -> init:'c -> ('c -> 'a * 'b -> 'c) -> 'c
 end
+
+module Location : sig
+  include module type of Ppxlib.Location
+
+  type edge = Left | Right
+
+  val print_edge : edge -> Format.formatter -> t -> unit
+end
