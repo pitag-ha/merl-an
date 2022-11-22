@@ -1,13 +1,6 @@
 open! Import
 module Pprintast_org = Pprintast
 
-(* FIXME: where was I using this?? *)
-module Timing_tree = Bin_tree.Make (struct
-  type t = int * Yojson.Basic.t
-
-  let compare (fst, _) (snd, _) = Int.compare fst snd
-end)
-
 let usage = "ocamlmerlin_bench MERLIN_PATH PROJ_PATH PROJ_NAME"
 
 let () =
