@@ -8,7 +8,7 @@ module Timing_tree = Bin_tree.Make (struct
   let compare (fst, _) (snd, _) = Int.compare fst snd
 end)
 
-let usage = "ocamlmerlin_bench MERLIN PATH PROJ_NAME"
+let usage = "ocamlmerlin_bench MERLIN_PATH PROJ_PATH PROJ_NAME"
 
 let () =
   (* TODO: add arg for [server] / [single] switch. when [server] is chosen, make an ignored query run on each file before starting the data collection to populate the cache*)
@@ -21,8 +21,8 @@ let () =
   Arg.parse [] (fun arg -> args := arg :: !args) usage;
   let merlin_path, proj_path, proj_name =
     match !args with
-    | [ prof_name; proj_path; merlin_path ] ->
-        (Fpath.v merlin_path, proj_path, prof_name)
+    | [ proj_name; proj_path; merlin_path ] ->
+        (Fpath.v merlin_path, proj_path, proj_name)
     | _ ->
         Arg.usage [] usage;
         exit 1
