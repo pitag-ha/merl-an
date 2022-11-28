@@ -17,28 +17,39 @@ let print path = function
 
 let pp ppf { path; frontend; _ } = Format.fprintf ppf "%s" (print path frontend)
 
-let untimed_query cmd =
+let untimed_query_generic ~f cmd =
   let ic = Unix.open_process_in cmd in
-  match Yojson.Safe.from_channel ic with
-  | json -> (
+  match f ic with
+  | res -> (
       match Unix.close_process_in ic with
-      | Unix.WEXITED 0 -> json
+      | Unix.WEXITED 0 -> res
       | Unix.WEXITED code ->
-          failwith ("merlin exited with code " ^ string_of_int code)
-      | _ -> failwith "merlin closed unexpectedly")
-  | exception e ->
-      print_endline "merlin server exception\n";
+          Format.eprintf "merlin exited with code %s\n%!" (string_of_int code);
+          exit 1
+      | _ ->
+          Format.eprintf "merlin closed unexpectedly\n%!";
+          exit 2)
+  | exception _ ->
+      Format.eprintf "exception while running ocamlmerlin\n%!";
       ignore (Unix.close_process_in ic);
-      raise e
+      exit 3
+
+let untimed_query_json cmd =
+  let f = Yojson.Safe.from_channel in
+  untimed_query_generic ~f cmd
+
+let untimed_query_str cmd =
+  let f = input_line in
+  untimed_query_generic ~f cmd
 
 let query ~query_time cmd =
   let start_time = Sys.time () in
-  let repl = untimed_query cmd in
+  let repl = untimed_query_json cmd in
   (repl, query_time +. Sys.time () -. start_time)
 
 let make path frontend =
   let cmd = Printf.sprintf "%s -version" (print path frontend) in
-  let version = untimed_query cmd in
+  let version = `String (untimed_query_str cmd) in
   { path; frontend; version }
 
 module Query_type = struct
