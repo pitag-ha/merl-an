@@ -1,6 +1,6 @@
 (lang dune 3.2)
 
-(name ocamlmerlin_bench)
+(name merlan)
 
 (generate_opam_files true)
 
@@ -16,7 +16,7 @@
 (documentation https://url/to/documentation)
 
 (package
- (name ocamlmerlin_bench)
+ (name merlan)
  (synopsis "A short synopsis")
  (description "A longer description")
  (depends
