@@ -19,7 +19,17 @@
  (name ocamlmerlin_bench)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune)
+ (depends
+  ocaml
+  dune
+  ppxlib
+  yojson
+  unix
+  fpath
+  bos
+  cmdliner
+  ppx_deriving_yojson
+  ppx_enumerate)
  (tags
   (topics "to describe" your project)))
 

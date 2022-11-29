@@ -12,6 +12,14 @@ bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.2"}
+  "ppxlib"
+  "yojson"
+  "unix"
+  "fpath"
+  "bos"
+  "cmdliner"
+  "ppx_deriving_yojson"
+  "ppx_enumerate"
   "odoc" {with-doc}
 ]
 build: [
