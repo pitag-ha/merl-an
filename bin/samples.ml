@@ -82,7 +82,7 @@ let generate ~sample_size ~id_counter file query_type =
 let get_some_sample_loc samples =
   match samples with [] -> None | { id = _; sample = loc, _ } :: _ -> Some loc
 
-let analyze_one_sample ~query_time cmd =
+let analyze_one_sample ~query_time repeats_per_sample cmd =
   let rec repeat_query ~query_time timings max res n =
     match n with
     | 0 -> (List.rev timings, max, res)
@@ -94,12 +94,12 @@ let analyze_one_sample ~query_time cmd =
           (Some next_res) (n - 1)
   in
   let timings, max_timing, last_res =
-    repeat_query ~query_time [] Int.min_int None 10
+    repeat_query ~query_time [] Int.min_int None repeats_per_sample
   in
   (timings, max_timing, last_res, query_time)
 
 let add_benchmarks ~merlin ~query_time ~current_data:(ts, qi)
-    { samples; file; query_type } =
+    ~repeats_per_sample { samples; file; query_type } =
   match get_some_sample_loc samples with
   | None ->
       (* TODO: add to logs data that [file] doesn't have any sample for query_type  *)
@@ -115,7 +115,7 @@ let add_benchmarks ~merlin ~query_time ~current_data:(ts, qi)
         | { id; sample = loc, _ } :: rest ->
             let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
             let timings, max_timing, merlin_reply, query_time =
-              analyze_one_sample ~query_time cmd
+              analyze_one_sample ~query_time repeats_per_sample cmd
             in
             let timing =
               {

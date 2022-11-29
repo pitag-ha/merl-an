@@ -6,7 +6,7 @@ let to_yojson file = `String (Fpath.to_string file)
 let pp = Fpath.pp
 let filename = Fpath.to_string
 
-let get_files ~extension path =
+let get_files ~extensions path =
   let open Result.Syntax in
   let traverse =
     let do_exclude path =
@@ -19,16 +19,22 @@ let get_files ~extension path =
   let* files =
     Bos.OS.Path.fold ~traverse
       (fun file acc ->
-        if Fpath.has_ext extension file then file :: acc else acc)
+        let has_ext =
+          List.fold_left
+            (fun b ext -> b || Fpath.has_ext ext file)
+            false extensions
+        in
+        if has_ext then file :: acc else acc)
       [] [ path ]
   in
   match files with
   | [] ->
-      Error
-        (`Msg
-          (Printf.sprintf
-             "The provided PATH doesn't contain any files with %s-extension.\n"
-             extension))
+      let msg =
+        Printf.sprintf
+          "The provided proj_dir doesn't contain any files with extensions %s.\n"
+          (String.concat ", " extensions)
+      in
+      Error (`Msg msg)
   | _ -> Ok files
 
 let parse_impl sourcefile =

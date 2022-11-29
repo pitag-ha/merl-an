@@ -53,11 +53,15 @@ let make path frontend =
   { path; frontend; version }
 
 module Query_type = struct
+  (* TODO: also add [complete-prefix] command. that's a little more complex than the other commands since, aside location and file name, it also requires a prefix of the identifier as input. *)
   type t = Locate | Case_analysis | Type_enclosing | Occurrences
-  [@@deriving to_yojson]
+  [@@deriving to_yojson, enumerate]
 
-  (* TODO: could make this more future-proof *)
-  let all = [ Locate; Case_analysis; Type_enclosing; Occurrences ]
+  let to_string = function
+    | Locate -> "locate"
+    | Case_analysis -> "case-analysis"
+    | Type_enclosing -> "type-enclosing"
+    | Occurrences -> "occurrences"
 
   type node = Longident | Expression | Var_pattern [@@deriving yojson]
 
@@ -95,24 +99,26 @@ module Cmd = struct
     match query_type with
     | Query_type.Locate ->
         Format.asprintf
-          " %a locate -look-for ml -position '%a' -index 0 -filename %a < %a" pp
+          " %a %s -look-for ml -position '%a' -index 0 -filename %a < %a" pp
           merlin
+          (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
     | Case_analysis ->
-        Format.asprintf
-          "%a case-analysis -start '%a' -end '%a' -filename %a < %a" pp merlin
+        Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a" pp
+          merlin
+          (Query_type.to_string query_type)
           (Location.print_edge Left) loc
           (Location.print_edge Right)
           loc File.pp file File.pp file
     | Type_enclosing ->
-        Format.asprintf "%a type-enclosing -position '%a' -filename %a < %a" pp
-          merlin
+        Format.asprintf "%a %s -position '%a' -filename %a < %a" pp merlin
+          (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
     | Occurrences ->
-        Format.asprintf "%a occurrences -identifier-at '%a' -filename %a < %a"
-          pp merlin
+        Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a" pp merlin
+          (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
 end

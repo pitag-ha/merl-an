@@ -17,10 +17,11 @@ module Query_type : sig
     | Case_analysis
     | Type_enclosing
     | Occurrences
-        (** The [ocamlmerlin] queries that this tool can create benchmark data
+        (** The [ocamlmerlin] queries that this tool can create analysis data
             for *)
 
   val to_yojson : t -> Yojson.Safe.t
+  val to_string : t -> string
 
   val all : t list
   (** Returns a list of all [ocamlmerlin] queries that this tool creates
