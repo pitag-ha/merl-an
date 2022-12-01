@@ -98,37 +98,38 @@ let analyze_one_sample ~query_time repeats_per_sample cmd =
   in
   (timings, max_timing, last_res, query_time)
 
-let add_benchmarks ~merlin ~query_time ~current_data:(ts, qi)
-    ~repeats_per_sample { samples; file; query_type } =
+let add_analysis_to_data ~merlin ~query_time ~repeats_per_sample data
+    { samples; file; query_type } =
   match get_some_sample_loc samples with
   | None ->
       (* TODO: add to logs data that [file] doesn't have any sample for query_type  *)
-      (ts, qi, query_time)
+      query_time
   | Some loc ->
       (* TODO: init merlin cache in Samples.add_benchmarks instead of here*)
       let query_time =
         Merlin.init_cache ~query_time ~query_type ~file ~loc merlin
       in
-      let rec loop ~query_time ts qi samples =
+      let rec loop ~query_time samples =
         match samples with
-        | [] -> (ts, qi, query_time)
+        | [] -> query_time
         | { id; sample = loc, _ } :: rest ->
             let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
             let timings, max_timing, merlin_reply, query_time =
               analyze_one_sample ~query_time repeats_per_sample cmd
             in
-            let timing =
+            let perf =
               {
-                Data.Timing.timings;
+                Data.Performance.timings;
                 max_timing;
                 file;
                 query_type;
                 sample_id = id;
+                loc;
               }
             in
-            let response =
-              { Data.Query_info.sample_id = id; merlin_reply; loc }
-            in
-            loop ~query_time (timing :: ts) (response :: qi) rest
+            let resp = { Data.Query_response.sample_id = id; merlin_reply } in
+            let cmd = { Data.Command.sample_id = id; cmd } in
+            Data.update ~perf ~resp ~cmd data;
+            loop ~query_time rest
       in
-      loop ~query_time ts qi samples
+      loop ~query_time samples

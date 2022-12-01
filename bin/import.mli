@@ -20,4 +20,5 @@ module Location : sig
   type edge = Left | Right
 
   val print_edge : edge -> Format.formatter -> t -> unit
+  val to_yojson : t -> Yojson.Safe.t
 end

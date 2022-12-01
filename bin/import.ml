@@ -34,4 +34,6 @@ module Location = struct
           (pos.pos_cnum - pos.pos_bol - 1, pos.pos_lnum)
     in
     Format.fprintf ppf "%i:%i" line col
+
+  let to_yojson loc = `String (Format.asprintf "%a" print loc)
 end

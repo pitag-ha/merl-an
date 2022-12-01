@@ -20,6 +20,8 @@ depends: [
   "cmdliner"
   "ppx_deriving_yojson"
   "ppx_enumerate"
+  "ppx_fields_conv"
+  "ptime"
   "odoc" {with-doc}
 ]
 build: [

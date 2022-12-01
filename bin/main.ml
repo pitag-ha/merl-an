@@ -9,52 +9,34 @@ let bench merlin_path proj_dir data_dir cold sample_size query_types extensions
   let proj_path = Fpath.v (Unix.realpath proj_dir) in
   let data_dir =
     match data_dir with
-    | Some dir -> dir
+    | Some dir -> Fpath.v dir
     | None ->
         let proj_name = Fpath.basename proj_path in
-        let ts = Float.to_string @@ Unix.time () in
-        "data/" ^ proj_name ^ "+" ^ ts
+        let ts = Int.to_string @@ Int.of_float @@ Unix.time () in
+        Fpath.v ("data/" ^ proj_name ^ "+" ^ ts)
   in
+  let data = Data.init data_dir in
   (* TODO: in Data module: add type [t], which contains the data_dir; if data_dir doesn't exist, it creates it. write function, to check if a value of [t] is writable. add to each submodule there the name of the data file. then, in [dump], replace [filename] by [t] value and append data file name to it.contents
       here: create value of that type, then check whether it's writable, before creating the benchmarks. *)
   match File.get_files ~extensions proj_path with
   | Ok files ->
       (*TODO: add logging when getting the files: log which files are going to be benchmarked and, at the end, log how many that are.*)
-      let add_data ((timing_data, query_data, qt), id_counter) (file, query_type)
-          =
+      let side_effectively_add_data (qt, id_counter) (file, query_type) =
         match Samples.generate ~sample_size ~id_counter file query_type with
-        | None -> ((timing_data, query_data, qt), id_counter)
+        | None -> (qt, id_counter)
         (* TODO: add to error data: "Error: file %s couldn't be parsed and was ignored.\n" *)
         | Some (samples, new_id_counter) ->
-            ( Samples.add_benchmarks ~merlin ~query_time:qt
-                ~current_data:(timing_data, query_data) ~repeats_per_sample
-                samples,
+            ( Samples.add_analysis_to_data ~merlin ~query_time:qt
+                ~repeats_per_sample data samples,
               new_id_counter )
       in
-      let (timing_data, query_data, total_query_time), _last_sample_id =
-        List.fold_over_product ~l1:files ~l2:query_types
-          ~init:(([], [], 0.), 0)
-          add_data
+      let total_query_time, _last_sample_id =
+        List.fold_over_product ~l1:files ~l2:query_types ~init:(0., 0)
+          side_effectively_add_data
       in
-      if not (Sys.file_exists data_dir) then
-        (* FIXME: this isn't setting the permissions right *)
-        Sys.mkdir data_dir (int_of_string "0x777");
-      (* FIXME: remove the following 3 lines and instead do the TODO above. *)
-      let oc = open_out (data_dir ^ "/timing.json") in
-      close_out_noerr oc;
-      Data.dump ~formatter:Data.Timing.print
-        ~filename:(data_dir ^ "/timing.json")
-        timing_data;
-      Data.dump ~formatter:Data.Query_info.print
-        ~filename:(data_dir ^ "/query_info.json")
-        query_data;
-      let total_time = Sys.time () in
-      let metadata =
-        { Data.Metadata.total_time; query_time = total_query_time; merlin }
-      in
-      Data.dump ~formatter:Data.Metadata.print
-        ~filename:(data_dir ^ "/metadata.json")
-        [ metadata ];
+      let metadata = Data.Metadata.create ~merlin ~total_query_time ~proj_dir in
+      Data.update ~metadata data;
+      Data.dump data;
       Merlin.stop_server merlin
   | Error (`Msg err) -> Printf.eprintf "%s" err
 

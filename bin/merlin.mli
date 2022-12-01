@@ -43,6 +43,8 @@ module Cmd : sig
   (** Represents a concrete [ocamlmerlin] command including location and
       everything *)
 
+  val to_yojson : t -> Yojson.Safe.t
+
   val make :
     query_type:Query_type.t -> file:File.t -> loc:Warnings.loc -> merlin -> t
   (** [make ~query_type ~file ~loc merlin] creates a concrete [ocamlmerlin]

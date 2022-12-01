@@ -1,6 +1,6 @@
 (executable
  (public_name ocamlmerlin_tester)
  (name main)
- (libraries ppxlib yojson unix fpath bos cmdliner)
+ (libraries ppxlib yojson unix fpath bos cmdliner ptime)
  (preprocess
-  (pps ppx_deriving_yojson ppx_enumerate)))
+  (pps ppx_deriving_yojson ppx_enumerate ppx_fields_conv)))

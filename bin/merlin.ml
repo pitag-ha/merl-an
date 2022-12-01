@@ -95,6 +95,8 @@ end
 module Cmd = struct
   type t = string
 
+  let to_yojson cmd = `String cmd
+
   let make ~query_type ~file ~loc merlin =
     match query_type with
     | Query_type.Locate ->
