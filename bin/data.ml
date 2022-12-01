@@ -1,5 +1,15 @@
 open! Import
 
+module Logs = struct
+  type t = Error of string | Warning of string | Log of string
+  [@@deriving to_yojson]
+
+  let pp ppf data =
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
+
+  let file = Fpath.v "logs.json"
+end
+
 module Performance = struct
   (* TODO: add more data, such as:
      - the maximum of functor depth inside a file
@@ -60,39 +70,38 @@ module Metadata = struct
 
   let file = Fpath.v "metadata.json"
 
-  let create ~merlin ~total_query_time ~proj_dir =
-    let total_time = Sys.time () in
-    let date =
-      let epoch = Unix.time () |> Ptime.of_float_s |> Option.get in
-      let (year, month, day), _ = Ptime.to_date_time epoch in
-      Printf.sprintf "%i/%i/%i" day month year
-    in
-    let source_code_commit_sha =
-      let cmd = "git rev-parse HEAD" in
-      try
-        let cwd = Unix.getcwd () in
-        Unix.chdir proj_dir;
-        let ic = Unix.open_process_in cmd in
-        Unix.chdir cwd;
-        match input_line ic with
-        | sha -> Some sha
-        | exception _ -> (* TODO: add to errors *) None
-      with _ -> None
-    in
-    {
-      merlin;
-      source_code_commit_sha;
-      date;
-      total_time;
-      query_time = total_query_time;
-    }
-end
+  let get_commit_sha ~proj_dir =
+    let cmd = "git rev-parse HEAD" in
+    try
+      let cwd = Unix.getcwd () in
+      Unix.chdir proj_dir;
+      let ic = Unix.open_process_in cmd in
+      Unix.chdir cwd;
+      match input_line ic with
+      | sha -> Ok sha
+      | exception exc ->
+          let err =
+            Logs.Warning
+              (Format.sprintf
+                 "Warning: something went wrong trying to get the commit sha \
+                  of the source code project: %s"
+                 (Printexc.to_string exc))
+          in
+          Error err
+    with exc ->
+      let err =
+        Logs.Warning
+          (Format.sprintf
+             "Warning: something went wrong trying to get the commit sha of \
+              the source code project: %s"
+             (Printexc.to_string exc))
+      in
+      Error err
 
-module Error = struct
-  type t = string
-
-  let pp ppf err = Format.fprintf ppf "%s" err
-  let file = Fpath.v "errors.json"
+  let get_date () =
+    let epoch = Unix.time () |> Ptime.of_float_s |> Option.get in
+    let (year, month, day), _ = Ptime.to_date_time epoch in
+    Printf.sprintf "%i/%i/%i" day month year
 end
 
 module type Table = sig
@@ -109,7 +118,7 @@ module Tables = struct
     mutable query_responses : Query_response.t list;
     mutable commands : Command.t list;
     mutable metadata : Metadata.t list;
-    mutable errors : Error.t list;
+    mutable logs : Logs.t list;
   }
   [@@deriving fields]
 
@@ -119,7 +128,7 @@ module Tables = struct
     | "query_responses" -> (module Query_response : Table)
     | "commands" -> (module Command : Table)
     | "metadata" -> (module Metadata : Table)
-    | "errors" -> (module Error : Table)
+    | "logs" -> (module Logs : Table)
     | _ ->
         Format.eprintf
           "Probably, there's a typo or an exhausitveness problem somewhere in \
@@ -133,7 +142,7 @@ module Tables = struct
         T.file :: acc)
       [] Fields.names
 
-  let add_data ?perf ?resp ?cmd ?metadata ?err tables =
+  let add_data ?perf ?resp ?cmd ?metadata ?log tables =
     let add_to_table table_field = function
       | None -> ()
       | Some data ->
@@ -145,7 +154,7 @@ module Tables = struct
       ~query_responses:(fun qr -> add_to_table qr resp)
       ~commands:(fun c -> add_to_table c cmd)
       ~metadata:(fun md -> add_to_table md metadata)
-      ~errors:(fun e -> add_to_table e err)
+      ~logs:(fun e -> add_to_table e log)
 
   let write_json_list ~formatter ~filename table =
     let oc = open_out filename in
@@ -180,7 +189,7 @@ module Tables = struct
        ~query_responses:(fun qr -> f Query_response.pp Query_response.file qr)
        ~commands:(fun c -> f Command.pp Command.file c)
        ~metadata:(fun md -> f Metadata.pp Metadata.file md)
-       ~errors:(fun e -> f Error.pp Error.file e)
+       logs:(fun e -> f Error.pp Error.file e)
   *)
 
   let dump ~dump_dir tables =
@@ -195,7 +204,7 @@ module Tables = struct
       ~query_responses:(fun qr -> f Query_response.pp Query_response.file qr)
       ~commands:(fun c -> f Command.pp Command.file c)
       ~metadata:(fun md -> f Metadata.pp Metadata.file md)
-      ~errors:(fun e -> f Error.pp Error.file e)
+      ~logs:(fun e -> f Logs.pp Logs.file e)
 end
 
 type t = { dump_dir : Fpath.t; content : Tables.t }
@@ -245,11 +254,11 @@ let init dump_dir =
           query_responses = [];
           commands = [];
           metadata = [];
-          errors = [];
+          logs = [];
         };
     }
 
-let update ?perf ?resp ?cmd ?err ?metadata { content; dump_dir = _ } =
-  Tables.add_data ?perf ?resp ?cmd ?metadata ?err content
+let update ?perf ?resp ?cmd ?log ?metadata { content; dump_dir = _ } =
+  Tables.add_data ?perf ?resp ?cmd ?metadata ?log content
 
 let dump { dump_dir; content } = Tables.dump ~dump_dir content

@@ -1,5 +1,10 @@
 open! Import
 
+
+module Logs : sig
+  type t = Error of string | Warning of string | Log of string
+end
+
 module Performance : sig
   type t = {
     sample_id : int;
@@ -21,16 +26,21 @@ module Metadata : sig
   (* TODO: add more metadata, such as:
      - the size of the AST per file
   *)
-  type t
-  (** Some metadata about how the analysis data has been created, such as info
-      about the merlin executable, the concrete version of the source code and
-      info about the performance of the data creation process itself. *)
+  type t = {
+    merlin : Merlin.t;
+    source_code_commit_sha : string option;
+    date : string;
+    total_time : float;
+    query_time : float;
+  }
+  (** Some metadata about how the analysis data has been created. *)
 
-  val create : merlin:Merlin.t -> total_query_time:float -> proj_dir:string -> t
-  (** Creates a metadata value. Parts of that metadata comes from the arguments
-      of the function, parts are added by the function. Among others, also the
-      total time of the process is added, so this function should be called at
-      the end of process. *)
+  val get_commit_sha : proj_dir:string -> (string, Logs.t) Result.t
+  (** [get_commit_sha ~proj_dir () ] returns the sha of the currently checked
+      out commit in [proj_dir]. *)
+
+  val get_date : unit -> string
+  (** Returns the current date *)
 end
 
 module Command : sig
@@ -38,9 +48,6 @@ module Command : sig
   (** The concrete merlin commands that are run to create the data. *)
 end
 
-module Error : sig
-  type t = string
-end
 
 type t
 (** The data that's being collected by the tool. Consists of two pieces of
@@ -57,7 +64,7 @@ val update :
   ?perf:Performance.t ->
   ?resp:Query_response.t ->
   ?cmd:Command.t ->
-  ?err:Error.t ->
+  ?log:Logs.t ->
   ?metadata:Metadata.t ->
   t ->
   unit

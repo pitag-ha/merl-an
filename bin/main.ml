@@ -16,15 +16,19 @@ let bench merlin_path proj_dir data_dir cold sample_size query_types extensions
         Fpath.v ("data/" ^ proj_name ^ "+" ^ ts)
   in
   let data = Data.init data_dir in
-  (* TODO: in Data module: add type [t], which contains the data_dir; if data_dir doesn't exist, it creates it. write function, to check if a value of [t] is writable. add to each submodule there the name of the data file. then, in [dump], replace [filename] by [t] value and append data file name to it.contents
-      here: create value of that type, then check whether it's writable, before creating the benchmarks. *)
   match File.get_files ~extensions proj_path with
   | Ok files ->
-      (*TODO: add logging when getting the files: log which files are going to be benchmarked and, at the end, log how many that are.*)
+      (*TODO: add terminal logging when getting the files: log number of files that are going to be benchmarked and, at the end, log how many that are.*)
       let side_effectively_add_data (qt, id_counter) (file, query_type) =
         match Samples.generate ~sample_size ~id_counter file query_type with
-        | None -> (qt, id_counter)
-        (* TODO: add to error data: "Error: file %s couldn't be parsed and was ignored.\n" *)
+        | None ->
+            let log =
+              Data.Logs.Warning
+                (Format.sprintf "File %s couldn't be parsed and was ignored.\n"
+                   (Yojson.Safe.to_string @@ File.to_yojson file))
+            in
+            Data.update ~log data;
+            (qt, id_counter)
         | Some (samples, new_id_counter) ->
             ( Samples.add_analysis_to_data ~merlin ~query_time:qt
                 ~repeats_per_sample data samples,
@@ -34,11 +38,31 @@ let bench merlin_path proj_dir data_dir cold sample_size query_types extensions
         List.fold_over_product ~l1:files ~l2:query_types ~init:(0., 0)
           side_effectively_add_data
       in
-      let metadata = Data.Metadata.create ~merlin ~total_query_time ~proj_dir in
+      let metadata =
+        let total_time = Sys.time () in
+        let source_code_commit_sha =
+          match Data.Metadata.get_commit_sha ~proj_dir with
+          | Ok sha -> Some sha
+          | Error log ->
+              Data.update ~log data;
+              None
+        in
+        let date = Data.Metadata.get_date () in
+        {
+          Data.Metadata.merlin;
+          source_code_commit_sha;
+          date;
+          total_time;
+          query_time = total_query_time;
+        }
+      in
+
       Data.update ~metadata data;
       Data.dump data;
       Merlin.stop_server merlin
-  | Error (`Msg err) -> Printf.eprintf "%s" err
+  | Error (`Msg err) ->
+      Printf.eprintf "%s" err;
+      exit 50
 
 let man =
   [

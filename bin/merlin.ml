@@ -29,10 +29,13 @@ let untimed_query_generic ~f cmd =
       | _ ->
           Format.eprintf "merlin closed unexpectedly\n%!";
           exit 2)
-  | exception _ ->
-      Format.eprintf "exception while running ocamlmerlin\n%!";
+  | exception e ->
       ignore (Unix.close_process_in ic);
-      exit 3
+      let s =
+        Format.sprintf "exception while running [%s]: %s\n%!" cmd
+          (Printexc.to_string e)
+      in
+      failwith s
 
 let untimed_query_json cmd =
   let f = Yojson.Safe.from_channel in

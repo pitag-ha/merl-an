@@ -51,7 +51,7 @@ let file_traversal ~random_state query_type =
 
 let generate ~sample_size ~id_counter file query_type =
   match File.parse_impl file with
-  | exception _ -> (* FIXME: write to error buffer; *) None
+  | exception _ -> None
   | ast ->
       (* FIXME: filter out locations that would return an error anyways (possibly similar to how patterns are filtered out for [case-analysis] if they belong to a value binding) *)
       (* TODO: add info to each sample about what kind of node it corresponds to (interesting for queries with more than one possible type of node) *)
@@ -68,15 +68,7 @@ let generate ~sample_size ~id_counter file query_type =
       let samples =
         let make_sample ~id sample = { id; sample } in
         Reservoir.get_samples ~make_sample ~id_counter reservoir
-        (* match population_size with
-           | 0 -> []
-           | n when n <= k -> List.init population_size (fun i -> sample_array.(i))
-           | n when n > k -> Array.to_list sample_array
-           | _ -> failwith "negative population size"
-           (* Cursor_loc.create_samples ~k:size ~random_state
-              ~nodes:query_type.Merlin.Query_type.nodes ast *) *)
       in
-      (*TODO: check whether I'm off by 1 or not in the returned new id_counter*)
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
 let get_some_sample_loc samples =
@@ -102,34 +94,48 @@ let add_analysis_to_data ~merlin ~query_time ~repeats_per_sample data
     { samples; file; query_type } =
   match get_some_sample_loc samples with
   | None ->
-      (* TODO: add to logs data that [file] doesn't have any sample for query_type  *)
+      let log =
+        Data.Logs.Log
+          (Format.sprintf "File %s: there are no samples for query [%s]."
+             (Yojson.Safe.to_string @@ File.to_yojson file)
+             (Merlin.Query_type.to_string query_type))
+      in
+      Data.update ~log data;
       query_time
   | Some loc ->
-      (* TODO: init merlin cache in Samples.add_benchmarks instead of here*)
       let query_time =
-        Merlin.init_cache ~query_time ~query_type ~file ~loc merlin
+        try Merlin.init_cache ~query_time ~query_type ~file ~loc merlin
+        with exc ->
+          let log = Data.Logs.Error (Printexc.to_string exc) in
+          Data.update ~log data;
+          query_time
       in
       let rec loop ~query_time samples =
         match samples with
         | [] -> query_time
-        | { id; sample = loc, _ } :: rest ->
+        | { id; sample = loc, _ } :: rest -> (
             let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
-            let timings, max_timing, merlin_reply, query_time =
-              analyze_one_sample ~query_time repeats_per_sample cmd
-            in
-            let perf =
-              {
-                Data.Performance.timings;
-                max_timing;
-                file;
-                query_type;
-                sample_id = id;
-                loc;
-              }
-            in
-            let resp = { Data.Query_response.sample_id = id; merlin_reply } in
-            let cmd = { Data.Command.sample_id = id; cmd } in
-            Data.update ~perf ~resp ~cmd data;
-            loop ~query_time rest
+            match analyze_one_sample ~query_time repeats_per_sample cmd with
+            | timings, max_timing, merlin_reply, query_time ->
+                let perf =
+                  {
+                    Data.Performance.timings;
+                    max_timing;
+                    file;
+                    query_type;
+                    sample_id = id;
+                    loc;
+                  }
+                in
+                let resp =
+                  { Data.Query_response.sample_id = id; merlin_reply }
+                in
+                let cmd = { Data.Command.sample_id = id; cmd } in
+                Data.update ~perf ~resp ~cmd data;
+                loop ~query_time rest
+            | exception e ->
+                let log = Data.Logs.Error (Printexc.to_string e) in
+                Data.update ~log data;
+                loop ~query_time rest)
       in
       loop ~query_time samples
