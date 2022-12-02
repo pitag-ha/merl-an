@@ -209,7 +209,7 @@ end
 
 type t = { dump_dir : Fpath.t; content : Tables.t }
 
-let create_dir data_path =
+let create_dir_recursively data_path =
   let dir = Fpath.to_string data_path in
   if Sys.file_exists dir then (
     (* possible TODO: prompt would be nicer *)
@@ -220,8 +220,23 @@ let create_dir data_path =
       Fpath.pp data_path;
     Unix.sleep 60)
   else
-    let dir = Fpath.to_string data_path in
-    Sys.mkdir dir 0o777
+    let _ =
+      Fpath.segs data_path |> List.map Fpath.v
+      |> List.fold_left
+           (fun last_dir b ->
+             let dir =
+               match last_dir with
+               | Some last_dir -> Fpath.(append last_dir b)
+               | None -> b
+             in
+             let () =
+               try Sys.mkdir (Fpath.to_string dir) 0o777 with _ -> ()
+             in
+             Format.printf "dir: %a\n%!" Fpath.pp dir;
+             Some dir)
+           None
+    in
+    ()
 
 let create_files dir =
   List.iter (fun fn ->
@@ -240,7 +255,7 @@ let some_file_isnt_writable data_path =
     Tables.files
 
 let init dump_dir =
-  create_dir dump_dir;
+  create_dir_recursively dump_dir;
   create_files dump_dir Tables.files;
   if some_file_isnt_writable dump_dir then (
     Format.eprintf "It's not possible to write to the data files\n%!";
