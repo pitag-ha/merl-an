@@ -1,6 +1,6 @@
 (lang dune 3.2)
 
-(name merlan)
+(name merl-an)
 
 (generate_opam_files true)
 
@@ -16,8 +16,8 @@
 (documentation https://url/to/documentation)
 
 (package
- (name merlan)
- (synopsis "A short synopsis")
+ (name merl-an)
+ (synopsis "Generates data to analyze merlin")
  (description "A longer description")
  (depends
   ocaml
