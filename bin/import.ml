@@ -15,6 +15,8 @@ module List = struct
       (fun outer_acc x ->
         List.fold_left (fun inner_acc y -> f inner_acc (x, y)) outer_acc l2)
       init l1
+
+  let is_empty l = List.length l = 0
 end
 
 module Location = struct

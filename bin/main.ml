@@ -2,7 +2,7 @@ open! Import
 open Cmdliner
 
 let bench merlin_path proj_dir data_dir cold sample_size query_types extensions
-    repeats_per_sample =
+    repeats =
   let merlin_frontend = if cold then Merlin.Single else Merlin.Server in
   let merlin_path = Fpath.v merlin_path in
   let merlin = Merlin.make merlin_path merlin_frontend in
@@ -27,37 +27,17 @@ let bench merlin_path proj_dir data_dir cold sample_size query_types extensions
                 (Format.sprintf "File %s couldn't be parsed and was ignored.\n"
                    (Yojson.Safe.to_string @@ File.to_yojson file))
             in
-            Data.update ~log data;
+            Data.update_log ~log data;
             (qt, id_counter)
         | Some (samples, new_id_counter) ->
-            ( Samples.add_analysis_to_data ~merlin ~query_time:qt
-                ~repeats_per_sample data samples,
+            ( Samples.analyze ~merlin ~query_time:qt ~repeats data samples,
               new_id_counter )
       in
-      let total_query_time, _last_sample_id =
+      let query_time, _last_sample_id =
         List.fold_over_product ~l1:files ~l2:query_types ~init:(0., 0)
           side_effectively_add_data
       in
-      let metadata =
-        let total_time = Sys.time () in
-        let source_code_commit_sha =
-          match Data.Metadata.get_commit_sha ~proj_dir with
-          | Ok sha -> Some sha
-          | Error log ->
-              Data.update ~log data;
-              None
-        in
-        let date = Data.Metadata.get_date () in
-        {
-          Data.Metadata.merlin;
-          source_code_commit_sha;
-          date;
-          total_time;
-          query_time = total_query_time;
-        }
-      in
-
-      Data.update ~metadata data;
+      Data.update_metadata ~proj_path ~merlin ~query_time data;
       Data.dump data;
       Merlin.stop_server merlin
   | Error (`Msg err) ->

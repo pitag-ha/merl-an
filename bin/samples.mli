@@ -15,17 +15,12 @@ val generate :
     starting at [id_counter]. In case of success, it returns the generated
     sample set together with an updated [id_counter]. *)
 
-val add_analysis_to_data :
-  merlin:Merlin.t ->
-  query_time:float ->
-  repeats_per_sample:int ->
-  Data.t ->
-  t ->
-  float
-(** [add_analysis_to_data ~merlin ~query_time ~repeats_per_sample data samples]
-    appends new analysis data to [data]. The data results from running [merlin]
-    on the [samples] (notice that [samples] also contains info on the file and
-    on the query type the samples are for); it runs the query
-    [repeats_per_sample] times. The new data is appended to [data] as a
-    side-effect. The return value is the updated [query_time] (which is
-    important to analyze the performance of this tool itself). *)
+val analyze :
+  merlin:Merlin.t -> query_time:float -> repeats:int -> Data.t -> t -> float
+(** [analyze ~merlin ~query_time ~repeats data samples] appends new analysis
+    data to [data]. The data results from running [merlin] on the [samples]
+    (notice that [samples] also contains info on the file and on the query type
+    the samples are for); it runs the query [repeats] times. The new data is
+    appended to [data] as a side-effect. The return value is the updated
+    [query_time] (which is important to analyze the performance of this tool
+    itself). *)
