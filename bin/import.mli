@@ -12,6 +12,8 @@ module List : sig
 
   val fold_over_product :
     l1:'a t -> l2:'b t -> init:'c -> ('c -> 'a * 'b -> 'c) -> 'c
+
+  val is_empty : 'a t -> bool
 end
 
 module Location : sig

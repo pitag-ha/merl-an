@@ -6,8 +6,6 @@ module Logs = struct
 
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
-
-  let file = Fpath.v "logs.json"
 end
 
 module Performance = struct
@@ -28,19 +26,15 @@ module Performance = struct
   (* FIXME: print each of the sample repeats in a separate json field *)
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
-
-  let file = Fpath.v "performance.json"
 end
 
 module Query_response = struct
-  type t = { sample_id : int; merlin_reply : Merlin.Response.t option }
+  type t = { sample_id : int; responses : Merlin.Response.t list }
   [@@deriving to_yojson]
 
   (* FIXME: print each of the sample repeats in a separate json field *)
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
-
-  let file = Fpath.v "merlin_reponses.json"
 end
 
 module Command = struct
@@ -48,8 +42,6 @@ module Command = struct
 
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
-
-  let file = Fpath.v "commands.json"
 end
 
 module Metadata = struct
@@ -68,13 +60,11 @@ module Metadata = struct
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
 
-  let file = Fpath.v "metadata.json"
-
-  let get_commit_sha ~proj_dir =
+  let get_commit_sha ~proj_path =
     let cmd = "git rev-parse HEAD" in
     try
       let cwd = Unix.getcwd () in
-      Unix.chdir proj_dir;
+      Unix.chdir @@ Fpath.to_string proj_path;
       let ic = Unix.open_process_in cmd in
       Unix.chdir cwd;
       match input_line ic with
@@ -104,14 +94,6 @@ module Metadata = struct
     Printf.sprintf "%i/%i/%i" day month year
 end
 
-module type Table = sig
-  (* FIXME *)
-  (* type t *)
-
-  (* val pp : Format.formatter -> t -> unit *)
-  val file : Fpath.t
-end
-
 module Tables = struct
   type t = {
     mutable performances : Performance.t list;
@@ -122,25 +104,13 @@ module Tables = struct
   }
   [@@deriving fields]
 
-  (* FIXME *)
-  let table_of_string = function
-    | "performances" -> (module Performance : Table)
-    | "query_responses" -> (module Query_response : Table)
-    | "commands" -> (module Command : Table)
-    | "metadata" -> (module Metadata : Table)
-    | "logs" -> (module Logs : Table)
-    | _ ->
-        Format.eprintf
-          "Probably, there's a typo or an exhausitveness problem somewhere in \
-           the Data module.";
-        exit 10
+  let field_to_file field =
+    let field_name = Fieldslib.Field.name field in
+    Fpath.(add_ext ".json" @@ v field_name)
 
-  let files =
-    List.fold_left
-      (fun acc field_name ->
-        let (module T) = table_of_string field_name in
-        T.file :: acc)
-      [] Fields.names
+  let all_files =
+    Fields.to_list ~performances:field_to_file ~query_responses:field_to_file
+      ~commands:field_to_file ~metadata:field_to_file ~logs:field_to_file
 
   let add_data ?perf ?resp ?cmd ?metadata ?log tables =
     let add_to_table table_field = function
@@ -156,55 +126,27 @@ module Tables = struct
       ~metadata:(fun md -> add_to_table md metadata)
       ~logs:(fun e -> add_to_table e log)
 
-  let write_json_list ~formatter ~filename table =
-    let oc = open_out filename in
-    Fun.protect
-      ~finally:(fun () -> close_out_noerr oc)
-      (fun () ->
-        let ppf = Format.formatter_of_out_channel oc in
-        Format.pp_print_list ~pp_sep:Format.pp_print_newline formatter ppf table)
-
-  (* FIXME *)
-  (* let dump ~dump_dir tables =
-     let get_file_path file = Fpath.(to_string @@ append dump_dir (v file)) in
-     let dump_table field =
-       let table = Fieldslib.Field.get field tables in
-       let (module Table) = table_of_string @@ Fieldslib.Field.name field in
-       write_json_list ~formatter:Table.pp ~filename:Table.file table
-       (*let oc = open_out Table.file in
-         Fun.protect
-          ~finally:(fun () -> close_out_noerr oc)
-          (fun () ->
-            let ppf = Format.formatter_of_out_channel oc in
-            Format.pp_print_list ~pp_sep:Format.pp_print_newline Table.pp ppf
-              table) *)
-     in
-     let f formatter file data_piece =
-       let data_piece = Fieldslib.Field.get data_piece tables in
-       let filename = get_file_path file in
-       write_json_list ~formatter ~filename data_piece
-     in
-     Fields.iter
-       ~performances:(fun p -> f Performance.pp Performance.file p)
-       ~query_responses:(fun qr -> f Query_response.pp Query_response.file qr)
-       ~commands:(fun c -> f Command.pp Command.file c)
-       ~metadata:(fun md -> f Metadata.pp Metadata.file md)
-       logs:(fun e -> f Error.pp Error.file e)
-  *)
-
   let dump ~dump_dir tables =
-    let get_file_path file = Fpath.(to_string @@ append dump_dir file) in
-    let f formatter file data_piece =
-      let data_piece = Fieldslib.Field.get data_piece tables in
-      let filename = get_file_path file in
-      write_json_list ~formatter ~filename data_piece
+    let write_json_lines ~formatter ~file_path table =
+      let oc = open_out file_path in
+      Fun.protect
+        ~finally:(fun () -> close_out_noerr oc)
+        (fun () ->
+          let ppf = Format.formatter_of_out_channel oc in
+          Format.pp_print_list ~pp_sep:Format.pp_print_newline formatter ppf
+            table)
+    in
+    let dump_field formatter field =
+      let data_piece = Fieldslib.Field.get field tables in
+      let file_name = field_to_file field in
+      let file_path = Fpath.(to_string @@ append dump_dir file_name) in
+      write_json_lines ~formatter ~file_path data_piece
     in
     Fields.iter
-      ~performances:(fun p -> f Performance.pp Performance.file p)
-      ~query_responses:(fun qr -> f Query_response.pp Query_response.file qr)
-      ~commands:(fun c -> f Command.pp Command.file c)
-      ~metadata:(fun md -> f Metadata.pp Metadata.file md)
-      ~logs:(fun e -> f Logs.pp Logs.file e)
+      ~performances:(dump_field Performance.pp)
+      ~query_responses:(dump_field Query_response.pp)
+      ~commands:(dump_field Command.pp) ~metadata:(dump_field Metadata.pp)
+      ~logs:(dump_field Logs.pp)
 end
 
 type t = { dump_dir : Fpath.t; content : Tables.t }
@@ -245,19 +187,17 @@ let create_files dir =
       Unix.close descr)
 
 let some_file_isnt_writable data_path =
-  List.exists
-    (fun fn ->
+  List.exists (fun fn ->
       match open_out Fpath.(to_string @@ append data_path fn) with
       | exception _ -> true
       | oc ->
           close_out_noerr oc;
           false)
-    Tables.files
 
 let init dump_dir =
   create_dir_recursively dump_dir;
-  create_files dump_dir Tables.files;
-  if some_file_isnt_writable dump_dir then (
+  create_files dump_dir Tables.all_files;
+  if some_file_isnt_writable dump_dir Tables.all_files then (
     Format.eprintf "It's not possible to write to the data files\n%!";
     exit 20)
   else
@@ -273,7 +213,44 @@ let init dump_dir =
         };
     }
 
-let update ?perf ?resp ?cmd ?log ?metadata { content; dump_dir = _ } =
-  Tables.add_data ?perf ?resp ?cmd ?metadata ?log content
+let update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type
+    { content; dump_dir = _ } =
+  let max_timing, timings, responses =
+    (* FIXME: add json struture to the two lists *)
+    let rec loop ~max_timing ~responses ~timings = function
+      | [] -> (max_timing, timings, responses)
+      | resp :: rest ->
+          let timing = Merlin.Response.get_timing resp in
+          let timings = timing :: timings in
+          let responses = resp :: responses in
+          let max_timing = Int.max timing max_timing in
+          loop ~max_timing ~timings ~responses rest
+    in
+    loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
+  in
+  let perf =
+    { Performance.timings; max_timing; file; query_type; sample_id = id; loc }
+  in
+  let resp = { Query_response.sample_id = id; responses } in
+  let cmd = { Command.sample_id = id; cmd } in
+  Tables.add_data ~perf ~resp ~cmd content
+
+let update_log ~log { content; dump_dir = _ } = Tables.add_data ~log content
+
+let update_metadata ~proj_path ~merlin ~query_time
+    ({ content; dump_dir = _ } as data) =
+  let metadata =
+    let total_time = Sys.time () in
+    let source_code_commit_sha =
+      match Metadata.get_commit_sha ~proj_path with
+      | Ok sha -> Some sha
+      | Error log ->
+          update_log ~log data;
+          None
+    in
+    let date = Metadata.get_date () in
+    { Metadata.merlin; source_code_commit_sha; date; total_time; query_time }
+  in
+  Tables.add_data ~metadata content
 
 let dump { dump_dir; content } = Tables.dump ~dump_dir content

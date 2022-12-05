@@ -45,11 +45,6 @@ let untimed_query_str cmd =
   let f = input_line in
   untimed_query_generic ~f cmd
 
-let query ~query_time cmd =
-  let start_time = Sys.time () in
-  let repl = untimed_query_json cmd in
-  (repl, query_time +. Sys.time () -. start_time)
-
 let make path frontend =
   let cmd = Printf.sprintf "%s -version" (print path frontend) in
   let version = `String (untimed_query_str cmd) in
@@ -126,14 +121,32 @@ module Cmd = struct
           (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
+
+  let some_global_cmd file merlin =
+    Format.asprintf "%a errors -filename %a < %a" pp merlin File.pp file File.pp
+      file
+
+  let run_once ~query_time cmd =
+    let start_time = Sys.time () in
+    let repl = untimed_query_json cmd in
+    (repl, query_time +. Sys.time () -. start_time)
+
+  let run ~query_time ~repeats cmd =
+    let rec loop ~query_time responses = function
+      | 0 -> (responses, query_time)
+      | n ->
+          let new_resp, query_time = run_once ~query_time cmd in
+          loop ~query_time (new_resp :: responses) (n - 1)
+    in
+    loop ~query_time [] repeats
 end
 
-let init_cache ~query_time ~query_type ~file ~loc merlin =
+let init_cache ~query_time file merlin =
   match merlin.frontend with
   | Single -> query_time
   | Server ->
-      let cmd = Cmd.make ~query_type ~file ~loc merlin in
-      let _, query_time = query ~query_time cmd in
+      let cmd = Cmd.some_global_cmd file merlin in
+      let _, query_time = Cmd.run_once ~query_time cmd in
       query_time
 
 let stop_server { path; frontend; _ } =

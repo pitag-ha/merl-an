@@ -71,71 +71,32 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let get_some_sample_loc samples =
-  match samples with [] -> None | { id = _; sample = loc, _ } :: _ -> Some loc
-
-let analyze_one_sample ~query_time repeats_per_sample cmd =
-  let rec repeat_query ~query_time timings max res n =
-    match n with
-    | 0 -> (List.rev timings, max, res)
-    | n ->
-        let next_res, query_time = Merlin.query ~query_time cmd in
-        let next_timing = Merlin.Response.get_timing next_res in
-        let max_timing = Int.max max next_timing in
-        repeat_query ~query_time (next_timing :: timings) max_timing
-          (Some next_res) (n - 1)
-  in
-  let timings, max_timing, last_res =
-    repeat_query ~query_time [] Int.min_int None repeats_per_sample
-  in
-  (timings, max_timing, last_res, query_time)
-
-let add_analysis_to_data ~merlin ~query_time ~repeats_per_sample data
-    { samples; file; query_type } =
-  match get_some_sample_loc samples with
-  | None ->
-      let log =
-        Data.Logs.Log
-          (Format.sprintf "File %s: there are no samples for query [%s]."
-             (Yojson.Safe.to_string @@ File.to_yojson file)
-             (Merlin.Query_type.to_string query_type))
-      in
-      Data.update ~log data;
-      query_time
-  | Some loc ->
-      let query_time =
-        try Merlin.init_cache ~query_time ~query_type ~file ~loc merlin
-        with exc ->
-          let log = Data.Logs.Error (Printexc.to_string exc) in
-          Data.update ~log data;
-          query_time
-      in
-      let rec loop ~query_time samples =
-        match samples with
-        | [] -> query_time
-        | { id; sample = loc, _ } :: rest -> (
-            let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
-            match analyze_one_sample ~query_time repeats_per_sample cmd with
-            | timings, max_timing, merlin_reply, query_time ->
-                let perf =
-                  {
-                    Data.Performance.timings;
-                    max_timing;
-                    file;
-                    query_type;
-                    sample_id = id;
-                    loc;
-                  }
-                in
-                let resp =
-                  { Data.Query_response.sample_id = id; merlin_reply }
-                in
-                let cmd = { Data.Command.sample_id = id; cmd } in
-                Data.update ~perf ~resp ~cmd data;
-                loop ~query_time rest
-            | exception e ->
-                let log = Data.Logs.Error (Printexc.to_string e) in
-                Data.update ~log data;
-                loop ~query_time rest)
-      in
-      loop ~query_time samples
+let analyze ~merlin ~query_time ~repeats data { samples; file; query_type } =
+  if List.is_empty samples then (
+    let log =
+      Data.Logs.Log
+        (Format.sprintf "File %s: there are no samples for query [%s]."
+           (Yojson.Safe.to_string @@ File.to_yojson file)
+           (Merlin.Query_type.to_string query_type))
+    in
+    Data.update_log ~log data;
+    query_time)
+  else
+    let query_time =
+      try Merlin.init_cache ~query_time file merlin
+      with exc ->
+        let log = Data.Logs.Error (Printexc.to_string exc) in
+        Data.update_log ~log data;
+        query_time
+    in
+    let rec loop ~query_time samples =
+      match samples with
+      | [] -> query_time
+      | { id; sample = loc, _ } :: rest ->
+          let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
+          let responses, query_time = Merlin.Cmd.run ~query_time ~repeats cmd in
+          Data.update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type
+            data;
+          loop ~query_time rest
+    in
+    loop ~query_time samples
