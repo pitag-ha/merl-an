@@ -16,11 +16,16 @@ val generate :
     sample set together with an updated [id_counter]. *)
 
 val analyze :
-  merlin:Merlin.t -> query_time:float -> repeats:int -> Data.t -> t -> float
+  merlin:Merlin.t ->
+  query_time:float ->
+  repeats:int ->
+  update:(Data.sample -> unit) ->
+  t ->
+  (float, Logs.t) Result.t
 (** [analyze ~merlin ~query_time ~repeats data samples] appends new analysis
     data to [data]. The data results from running [merlin] on the [samples]
     (notice that [samples] also contains info on the file and on the query type
     the samples are for); it runs the query [repeats] times. The new data is
-    appended to [data] as a side-effect. The return value is the updated
-    [query_time] (which is important to analyze the performance of this tool
-    itself). *)
+    appended to [data] as a side-effect. In case of success, the return value is
+    the updated [query_time] (which is important to analyze the performance of
+    this tool itself). *)

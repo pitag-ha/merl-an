@@ -88,6 +88,13 @@ module Response = struct
             | _ -> failwith "merlin gave bad output")
         | _ -> failwith "merlin gave bad output")
     | _ -> failwith "merlin gave bad output"
+
+  let crop_timing = function
+    | `Assoc answer -> `Assoc (List.remove_assoc "timing" answer)
+    | _ ->
+        failwith
+          "Error while cropping merlin response: reponse should have a key \
+           called timing."
 end
 
 module Cmd = struct
@@ -143,11 +150,13 @@ end
 
 let init_cache ~query_time file merlin =
   match merlin.frontend with
-  | Single -> query_time
-  | Server ->
+  | Single -> Ok query_time
+  | Server -> (
       let cmd = Cmd.some_global_cmd file merlin in
-      let _, query_time = Cmd.run_once ~query_time cmd in
-      query_time
+      try
+        let _, query_time = Cmd.run_once ~query_time cmd in
+        Ok query_time
+      with exc -> Error (Logs.Error (Printexc.to_string exc)))
 
 let stop_server { path; frontend; _ } =
   match frontend with

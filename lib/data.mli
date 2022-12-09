@@ -1,46 +1,41 @@
 open! Import
 
-type t
-(** The data that's being collected by the tool. Consists of two pieces of
-    information: the directory, in which the data should be persisted in the end
-    (unmutable) and the data that's being collected step by step by the tool
-    (mutable). *)
+(* FIXME: once the tables structure is improved, this type should be split into several types and renamed *)
+type sample = {
+  id : int;
+  responses : Merlin.Response.t list;
+  cmd : Merlin.Cmd.t;
+  file : File.t;
+  loc : Warnings.loc;
+  query_type : Merlin.Query_type.t;
+}
 
-val init : Fpath.t -> t
-(** Returns an empty [t] value with mutable content. The provided path is the
-    path of the directory, inside which the data will be persisted as
-    json-line-files. *)
+module Make (Backend : Backend.Data_tables) : sig
+  type t
+  (** The data that's being collected by the tool. Consists of two pieces of
+      information: the configuration with which the data is collected
+      (unmutable) and the data that's being collected step by step by the tool
+      (mutable). *)
 
-val update_analysis_data :
-  id:int ->
-  responses:Merlin.Response.t list ->
-  cmd:Merlin.Cmd.t ->
-  file:File.t ->
-  loc:Warnings.loc ->
-  query_type:Merlin.Query_type.t ->
-  t ->
-  unit
-(** [update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type data]
-    appends the new pieces of data [responses], [cmd], [file], [loc] and
-    [query_type], coming from the sample with id [id], to [data]. It also does
-    computations to add some performance overview data to [data]. *)
+  val init : Fpath.t -> t
+  (** [init ~pure dir_path] returns a data instance with empty mutable content.
+      The provided path [dir_path] is the path of the directory, inside which
+      the data will be persisted as json-line-files. *)
 
-module Logs : sig
-  type t = Error of string | Warning of string | Log of string
+  val update : t -> sample -> unit
+  (** Update the data by appending analyzis data of one sample to it. *)
+
+  val persist_logs : log:Logs.t -> t -> unit
+  (** Add the log to one of the data tables; the table will later be dumped to
+      disk when dumping all tables. *)
+
+  val wrap_up : t -> proj_path:Fpath.t -> query_time:float -> unit
+  (** Call this, before ending the program. It makes sure there's no data left
+      in memory anymore and, in case there still is, dumps it (TODO!). Depending
+      on the backend kind, it also generates and dumps some metadata. *)
+
+  val dump : t -> unit
+  (** [dump data] writes the content of [data] into json-line files. The
+      directory, into which the files will be written, is part of the
+      configuration data stored in the [Data.t] value. *)
 end
-
-val update_log : log:Logs.t -> t -> unit
-(** [update_log ~log data] updates the log table of [data] with [log] as a way
-    to persist logs. *)
-
-val update_metadata :
-  proj_path:Fpath.t -> merlin:Merlin.t -> query_time:float -> t -> unit
-(** Updates the metadata table of [data] with the arguments provided. It also
-    adds some more metadata. Concretely, the commit sha of the project merlin is
-    being analyzed on, the date, and the total time the tool has taken. For the
-    last one to be accurate, it's important to call this function at the end of
-    the process. *)
-
-val dump : t -> unit
-(** [dump data] writes the content of [data] into json-line files inside the
-    directory of [data]. *)

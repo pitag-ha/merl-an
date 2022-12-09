@@ -12,13 +12,8 @@ val make : Fpath.t -> frontend -> t
     executable lives and the frontend you want to be used *)
 
 module Query_type : sig
-  type t =
-    | Locate
-    | Case_analysis
-    | Type_enclosing
-    | Occurrences
-        (** The [ocamlmerlin] queries that this tool can create analysis data
-            for *)
+  (** The [ocamlmerlin] queries that this tool can create analysis data for *)
+  type t = Locate | Case_analysis | Type_enclosing | Occurrences
 
   val to_yojson : t -> Yojson.Safe.t
   val to_string : t -> string
@@ -45,6 +40,10 @@ module Response : sig
   val get_timing : t -> int
   (** Extracts the information about time consumption from an [ocamlmerlin]
       response *)
+
+  val crop_timing : t -> t
+  (** Removes the timing field from the merlin responce. Usefule when you want
+      pure data, e.g. for regression testing. *)
 end
 
 module Cmd : sig
@@ -71,10 +70,11 @@ module Cmd : sig
 end
 with type merlin := t
 
-val init_cache : query_time:float -> File.t -> t -> float
+val init_cache : query_time:float -> File.t -> t -> (float, Logs.t) Result.t
 (** [init_cache file merlin] inits the [merlin] cache on [file] if the frontend
     is [Server]; does nothing if the frontend is [Single]. It inits the cache by
-    running a global command on the file. It returns the updated [query_time]. *)
+    running a global command on the file. In case of success, it returns the
+    updated [query_time]. *)
 
 val stop_server : t -> unit
 (** Stops the [ocamlmerlin] server if the frontend is [Server]; does nothing if
