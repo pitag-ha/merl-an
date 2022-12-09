@@ -14,7 +14,7 @@ val init : pure:bool -> Fpath.t -> t
     with the same content yields the same result; in particular, no performance
     data is being added. *)
 
-val update_analysis_data :
+(* val update_analysis_data :
   id:int ->
   responses:Merlin.Response.t list ->
   cmd:Merlin.Cmd.t ->
@@ -46,7 +46,9 @@ val update_metadata :
     being analyzed on, the date, and the total time the tool has taken. For the
     last one to be accurate, it's important to call this function at the end of
     the process. Notice that those pieces of information are only being added,
-    if the [data] wasn't initalized with [pure = true].*)
+    if the [data] wasn't initalized with [pure = true].*) *)
+
+val update_tables : updater:(Tables.t -> unit) -> t -> unit
 
 val dump : t -> unit
 (** [dump data] writes the content of [data] into json-line files inside the

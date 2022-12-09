@@ -74,19 +74,20 @@ let generate ~sample_size ~id_counter file query_type =
 let analyze ~merlin ~query_time ~repeats data { samples; file; query_type } =
   if List.is_empty samples then (
     let log =
-      Data.Logs.Log
+      Tables.Logs.Log
         (Format.sprintf "File %s: there are no samples for query [%s]."
            (Yojson.Safe.to_string @@ File.to_yojson file)
            (Merlin.Query_type.to_string query_type))
     in
-    Data.update_log ~log data;
+    Data.update_tables ~updater:(Tables.update_log ~log) data;
     query_time)
   else
     let query_time =
       try Merlin.init_cache ~query_time file merlin
       with exc ->
-        let log = Data.Logs.Error (Printexc.to_string exc) in
-        Data.update_log ~log data;
+        let log = Tables.Logs.Error (Printexc.to_string exc) in
+        Data.update_tables ~updater:(Tables.update_log ~log) data;
+
         query_time
     in
     let rec loop ~query_time samples =
@@ -95,8 +96,11 @@ let analyze ~merlin ~query_time ~repeats data { samples; file; query_type } =
       | { id; sample = loc, _ } :: rest ->
           let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
           let responses, query_time = Merlin.Cmd.run ~query_time ~repeats cmd in
-          Data.update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type
-            data;
+          let updater =
+            Tables.update_analysis_data ~id ~responses ~cmd ~file ~loc
+              ~query_type
+          in
+          Data.update_tables ~updater data;
           loop ~query_time rest
     in
     loop ~query_time samples

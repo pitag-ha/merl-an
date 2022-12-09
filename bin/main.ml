@@ -28,11 +28,12 @@ let analyze ~pure (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
         with
         | None ->
             let log =
-              Merl_an.Data.Logs.Warning
+              Merl_an.Tables.Logs.Warning
                 (Format.sprintf "File %s couldn't be parsed and was ignored.\n"
                    (Yojson.Safe.to_string @@ Merl_an.File.to_yojson file))
             in
-            Merl_an.Data.update_log ~log data;
+            let updater = Merl_an.Tables.update_log ~log in
+            Merl_an.Data.update_tables ~updater data;
             (qt, id_counter)
         | Some (samples, new_id_counter) ->
             ( Merl_an.Samples.analyze ~merlin ~query_time:qt ~repeats data
@@ -43,8 +44,11 @@ let analyze ~pure (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
         List.fold_over_product ~l1:files ~l2:query_types ~init:(0., 0)
           side_effectively_add_data
       in
-      Merl_an.Data.update_metadata ~proj_path ~merlin
-        ~query_time:(Some query_time) data;
+      let updater =
+        Merl_an.Tables.update_metadata ~proj_path ~merlin
+          ~query_time:(Some query_time)
+      in
+      Merl_an.Data.update_tables ~updater data;
       Merl_an.Data.dump data;
       Merl_an.Merlin.stop_server merlin
   | Error (`Msg err) ->
