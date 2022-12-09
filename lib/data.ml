@@ -51,9 +51,9 @@ module Metadata = struct
   type t = {
     merlin : Merlin.t;
     source_code_commit_sha : string option;
-    date : string;
-    total_time : float;
-    query_time : float;
+    date : string option;
+    total_time : float option;
+    query_time : float option;
   }
   [@@deriving to_yojson]
 
@@ -96,11 +96,11 @@ end
 
 module Tables = struct
   type t = {
-    mutable performances : Performance.t list;
-    mutable query_responses : Query_response.t list;
-    mutable commands : Command.t list;
-    mutable metadata : Metadata.t list;
-    mutable logs : Logs.t list;
+    performances : Performance.t list ref option;
+    query_responses : Query_response.t list ref option;
+    commands : Command.t list ref option;
+    metadata : Metadata.t list ref option;
+    logs : Logs.t list ref option;
   }
   [@@deriving fields]
 
@@ -108,23 +108,34 @@ module Tables = struct
     let field_name = Fieldslib.Field.name field in
     Fpath.(add_ext ".json" @@ v field_name)
 
-  let all_files =
-    Fields.to_list ~performances:field_to_file ~query_responses:field_to_file
-      ~commands:field_to_file ~metadata:field_to_file ~logs:field_to_file
+  let all_files tables =
+    let foo field =
+      Fieldslib.Field.get field tables
+      |> Option.map (fun _ -> field_to_file field)
+    in
+    Fields.to_list ~performances:foo ~query_responses:foo ~commands:foo
+      ~metadata:foo ~logs:foo
+    |> List.filter_map Fun.id
 
   let add_data ?perf ?resp ?cmd ?metadata ?log tables =
-    let add_to_table table_field = function
-      | None -> ()
-      | Some data ->
-          let field_setter = Option.get (Fieldslib.Field.setter table_field) in
-          field_setter tables (data :: Fieldslib.Field.get table_field tables)
+    let add_to_table new_entry table_field =
+      let table_content = Fieldslib.Field.get table_field tables in
+      match (table_content, new_entry) with
+      | _, None -> ()
+      | None, Some _new_entry -> (
+          let log =
+            Format.sprintf "Tried to write to a table that doesn't exist: %s"
+              (Fieldslib.Field.name table_field)
+          in
+          match tables.logs with
+          | Some logs -> logs := Logs.Warning log :: !logs
+          | None -> Format.printf "%s\n%!" log)
+      | Some current_content, Some entry ->
+          current_content := entry :: !current_content
     in
-    Fields.iter
-      ~performances:(fun p -> add_to_table p perf)
-      ~query_responses:(fun qr -> add_to_table qr resp)
-      ~commands:(fun c -> add_to_table c cmd)
-      ~metadata:(fun md -> add_to_table md metadata)
-      ~logs:(fun e -> add_to_table e log)
+    Fields.iter ~performances:(add_to_table perf)
+      ~query_responses:(add_to_table resp) ~commands:(add_to_table cmd)
+      ~metadata:(add_to_table metadata) ~logs:(add_to_table log)
 
   let dump ~dump_dir tables =
     let write_json_lines ~formatter ~file_path table =
@@ -137,10 +148,12 @@ module Tables = struct
             table)
     in
     let dump_field formatter field =
-      let data_piece = Fieldslib.Field.get field tables in
-      let file_name = field_to_file field in
-      let file_path = Fpath.(to_string @@ append dump_dir file_name) in
-      write_json_lines ~formatter ~file_path data_piece
+      match Fieldslib.Field.get field tables with
+      | None -> ()
+      | Some table ->
+          let file_name = field_to_file field in
+          let file_path = Fpath.(to_string @@ append dump_dir file_name) in
+          write_json_lines ~formatter ~file_path !table
     in
     Fields.iter
       ~performances:(dump_field Performance.pp)
@@ -149,7 +162,7 @@ module Tables = struct
       ~logs:(dump_field Logs.pp)
 end
 
-type t = { dump_dir : Fpath.t; content : Tables.t }
+type t = { pure : bool; dump_dir : Fpath.t; mutable content : Tables.t }
 
 let create_dir_recursively data_path =
   let dir = Fpath.to_string data_path in
@@ -194,27 +207,26 @@ let some_file_isnt_writable data_path =
           close_out_noerr oc;
           false)
 
-let init dump_dir =
+let init ~pure dump_dir =
   create_dir_recursively dump_dir;
-  create_files dump_dir Tables.all_files;
-  if some_file_isnt_writable dump_dir Tables.all_files then (
+  let tables =
+    {
+      Tables.performances = (if pure then None else Some (ref []));
+      query_responses = Some (ref []);
+      commands = Some (ref []);
+      metadata = Some (ref []);
+      logs = Some (ref []);
+    }
+  in
+  let data_files = Tables.all_files tables in
+  create_files dump_dir data_files;
+  if some_file_isnt_writable dump_dir data_files then (
     Format.eprintf "It's not possible to write to the data files\n%!";
     exit 20)
-  else
-    {
-      dump_dir;
-      content =
-        {
-          performances = [];
-          query_responses = [];
-          commands = [];
-          metadata = [];
-          logs = [];
-        };
-    }
+  else { pure; dump_dir; content = tables }
 
 let update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type
-    { content; dump_dir = _ } =
+    { content; pure; dump_dir = _ } =
   let max_timing, timings, responses =
     (* FIXME: add json struture to the two lists *)
     let rec loop ~max_timing ~responses ~timings = function
@@ -229,28 +241,53 @@ let update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type
     loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
   in
   let perf =
-    { Performance.timings; max_timing; file; query_type; sample_id = id; loc }
+    if pure then None
+    else
+      Some
+        {
+          Performance.timings;
+          max_timing;
+          file;
+          query_type;
+          sample_id = id;
+          loc;
+        }
   in
-  let resp = { Query_response.sample_id = id; responses } in
+  let resp =
+    let responses =
+      if pure then List.map Merlin.Response.crop_timing responses else responses
+    in
+    { Query_response.sample_id = id; responses }
+  in
   let cmd = { Command.sample_id = id; cmd } in
-  Tables.add_data ~perf ~resp ~cmd content
+  Tables.add_data ?perf ~resp ~cmd content
 
-let update_log ~log { content; dump_dir = _ } = Tables.add_data ~log content
+let update_log ~log { content; pure = _; dump_dir = _ } =
+  Tables.add_data ~log content
 
 let update_metadata ~proj_path ~merlin ~query_time
-    ({ content; dump_dir = _ } as data) =
+    ({ content; pure; dump_dir = _ } as data) =
   let metadata =
-    let total_time = Sys.time () in
-    let source_code_commit_sha =
-      match Metadata.get_commit_sha ~proj_path with
-      | Ok sha -> Some sha
-      | Error log ->
-          update_log ~log data;
-          None
-    in
-    let date = Metadata.get_date () in
-    { Metadata.merlin; source_code_commit_sha; date; total_time; query_time }
+    if pure then
+      {
+        Metadata.merlin;
+        source_code_commit_sha = None;
+        date = None;
+        total_time = None;
+        query_time = None;
+      }
+    else
+      let total_time = Some (Sys.time ()) in
+      let source_code_commit_sha =
+        match Metadata.get_commit_sha ~proj_path with
+        | Ok sha -> Some sha
+        | Error log ->
+            update_log ~log data;
+            None
+      in
+      let date = Some (Metadata.get_date ()) in
+      { Metadata.merlin; source_code_commit_sha; date; total_time; query_time }
   in
   Tables.add_data ~metadata content
 
-let dump { dump_dir; content } = Tables.dump ~dump_dir content
+let dump { dump_dir; content; pure = _ } = Tables.dump ~dump_dir content

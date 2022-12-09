@@ -45,6 +45,10 @@ module Response : sig
   val get_timing : t -> int
   (** Extracts the information about time consumption from an [ocamlmerlin]
       response *)
+
+  val crop_timing : t -> t
+  (** Removes the timing field from the merlin responce. Usefule when you want
+      pure data. *)
 end
 
 module Cmd : sig

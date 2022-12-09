@@ -1,9 +1,9 @@
 open! Merl_an.Import
 open Cmdliner
 
-let bench (`Merlin merlin_path) (`Proj_dir proj_dir) (`Dir_name data_dir)
-    (`Cold cold) (`Sample_size sample_size) (`Query_types query_types)
-    (`Extensions extensions) (`Repeats repeats) =
+let analyze ~pure (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
+    (`Dir_name data_dir) (`Cold cold) (`Sample_size sample_size)
+    (`Query_types query_types) (`Extensions extensions) =
   let merlin_frontend =
     if cold then Merl_an.Merlin.Single else Merl_an.Merlin.Server
   in
@@ -18,7 +18,7 @@ let bench (`Merlin merlin_path) (`Proj_dir proj_dir) (`Dir_name data_dir)
         let ts = Int.to_string @@ Int.of_float @@ Unix.time () in
         Fpath.v ("data/" ^ proj_name ^ "+" ^ ts)
   in
-  let data = Merl_an.Data.init data_dir in
+  let data = Merl_an.Data.init ~pure data_dir in
   match Merl_an.File.get_files ~extensions proj_path with
   | Ok files ->
       (*TODO: add terminal logging when getting the files: log number of files that are going to be benchmarked and, at the end, log how many that are.*)
@@ -43,7 +43,8 @@ let bench (`Merlin merlin_path) (`Proj_dir proj_dir) (`Dir_name data_dir)
         List.fold_over_product ~l1:files ~l2:query_types ~init:(0., 0)
           side_effectively_add_data
       in
-      Merl_an.Data.update_metadata ~proj_path ~merlin ~query_time data;
+      Merl_an.Data.update_metadata ~proj_path ~merlin
+        ~query_time:(Some query_time) data;
       Merl_an.Data.dump data;
       Merl_an.Merlin.stop_server merlin
   | Error (`Msg err) ->
@@ -61,19 +62,42 @@ let man =
        dumped into json-line files.";
   ]
 
-let cmd =
-  let term =
+let performance_term =
+  Term.(
+    const (analyze ~pure:false)
+    $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dir $ Args.dir_name
+    $ Args.cold $ Args.sample_size $ Args.query_types $ Args.extensions)
+
+let performance =
+  let info =
+    let doc =
+      "Create a new data set, including a performance overview, to analyze  \
+       ocamlmerlin on a given project."
+    in
+    Cmd.info "performance" ~doc ~man
+  in
+  Cmd.v info performance_term
+
+let pure =
+  let pure_term =
     Term.(
-      const bench $ Args.merlin $ Args.proj_dir $ Args.dir_name $ Args.cold
-      $ Args.sample_size $ Args.query_types $ Args.extensions
-      $ Args.repeats_per_sample)
+      const (analyze ~pure:true (`Repeats 1))
+      $ Args.merlin $ Args.proj_dir $ Args.dir_name $ Args.cold
+      $ Args.sample_size $ Args.query_types $ Args.extensions)
   in
   let info =
     let doc =
-      "Create a new data set to analyze ocamlmerlin on a given project."
+      "Create a new pure data set to analyze ocamlmerlin on a given project.  \
+       To produce pure data, the [timing] component of the merlin response is  \
+       being cropped. This command is useful for end-to-end regression  \
+       analyzis of the ocamlmerlin responses. "
     in
-    Cmd.info "new" ~doc ~man
+    Cmd.info "pure" ~doc ~man
   in
-  Cmd.v info term
+  Cmd.v info pure_term
 
-let () = exit (Cmd.eval cmd)
+let main =
+  Cmd.group ~default:performance_term (Cmd.info "merl-an" ~man)
+    [ performance; pure ]
+
+let () = exit (Cmd.eval main)

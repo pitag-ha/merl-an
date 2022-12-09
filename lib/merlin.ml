@@ -88,6 +88,10 @@ module Response = struct
             | _ -> failwith "merlin gave bad output")
         | _ -> failwith "merlin gave bad output")
     | _ -> failwith "merlin gave bad output"
+
+  let crop_timing = function
+    | `Assoc answer -> `Assoc (List.remove_assoc "timing" answer)
+    | _ -> failwith "merlin gave bad output"
 end
 
 module Cmd = struct
