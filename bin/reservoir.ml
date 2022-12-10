@@ -58,10 +58,10 @@ let update ~random_state
     let () = reservoir.(update_index) <- input in
     updated_index
   else if update_index = i then
-    let r () = Random.State.float random_state 1.0 in
-    let new_i = i + int_of_float (log (r ()) /. log (1. -. w)) + 1 in
     let random_index = Random.State.int random_state k in
     let () = reservoir.(random_index) <- input in
+    let r () = Random.State.float random_state 1.0 in
+    let new_i = i + int_of_float (log (r ()) /. log (1. -. w)) + 1 in
     let new_w = w *. exp (log (r ()) /. float_of_int k) in
     { updated_index with state = { i = new_i; w = new_w } }
   else
