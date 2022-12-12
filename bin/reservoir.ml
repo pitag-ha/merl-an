@@ -52,39 +52,20 @@ let init ~placeholder ~random_state k =
   { reservoir; desired_size = k; state; update_index = 0 }
 
 let update ~random_state
-    { reservoir; desired_size = k; state = { i; w }; update_index } input =
+    ({ reservoir; desired_size = k; state = { i; w }; update_index } as smth) input =
+  let updated_index = { smth with update_index = smth.update_index + 1 } in
   if update_index < k then
     let () = reservoir.(update_index) <- input in
-    {
-      reservoir;
-      desired_size = k;
-      state = { i; w };
-      update_index = update_index + 1;
-    }
+    updated_index
   else if update_index = i then
-    let new_i =
-      let r = Random.State.float random_state 1.0 in
-      i + int_of_float (log r /. log (1. -. w)) + 1
-    in
     let random_index = Random.State.int random_state k in
     let () = reservoir.(random_index) <- input in
-    let new_w =
-      let r = Random.State.float random_state 1.0 in
-      w *. exp (log r /. float_of_int k)
-    in
-    {
-      reservoir;
-      desired_size = k;
-      state = { i = new_i; w = new_w };
-      update_index = update_index + 1;
-    }
+    let r () = Random.State.float random_state 1.0 in
+    let new_i = i + int_of_float (log (r ()) /. log (1. -. w)) + 1 in
+    let new_w = w *. exp (log (r ()) /. float_of_int k) in
+    { updated_index with state = { i = new_i; w = new_w } }
   else
-    {
-      reservoir;
-      desired_size = k;
-      state = { i; w };
-      update_index = update_index + 1;
-    }
+    updated_index
 
 let nth n r = r.(n)
 
