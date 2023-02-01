@@ -6,7 +6,7 @@ let to_yojson file = `String (Fpath.to_string file)
 let pp = Fpath.pp
 let filename = Fpath.to_string
 
-let get_files ~extensions path =
+let get_files ~extensions paths =
   let open Result.Syntax in
   let traverse =
     let do_exclude path =
@@ -25,7 +25,7 @@ let get_files ~extensions path =
             false extensions
         in
         if has_ext then file :: acc else acc)
-      [] [ path ]
+      [] paths
   in
   match files with
   | [] ->

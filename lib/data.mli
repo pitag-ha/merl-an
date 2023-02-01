@@ -62,7 +62,7 @@ val update : t -> update
 
 val persist_logs : log:Logs.t -> t -> unit
 
-val persist_metadata : t -> proj_path:Fpath.t -> merlin:Merlin.t -> query_time:float -> unit
+val persist_metadata : t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> query_time:float -> unit
 
 val dump : t -> unit
 (** [dump data] writes the content of [data] into json-line files inside the

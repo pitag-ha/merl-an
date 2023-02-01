@@ -57,7 +57,7 @@ module type T = sig
   val all_files : unit -> Fpath.t list
 
   val persist_metadata :
-    t -> proj_path:Fpath.t -> merlin:Merlin.t -> query_time:float -> unit
+    t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> query_time:float -> unit
 end
 
 module Performance = struct
@@ -99,10 +99,11 @@ end
 module Metadata = struct
   (* TODO: add more metadata, such as:
      - the size of the AST per file
+     - all project paths
   *)
   type t = {
     merlin : Merlin.t;
-    source_code_commit_sha : string option;
+    (* source_code_commit_sha : string option; *)
     date : string option;
     total_time : float;
     query_time : float;
@@ -112,33 +113,33 @@ module Metadata = struct
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
 
-  let get_commit_sha ~proj_path =
-    let cmd = "git rev-parse HEAD" in
-    try
-      let cwd = Unix.getcwd () in
-      Unix.chdir @@ Fpath.to_string proj_path;
-      let ic = Unix.open_process_in cmd in
-      Unix.chdir cwd;
-      match input_line ic with
-      | sha -> Ok sha
-      | exception exc ->
-          let err =
-            Logs.Warning
-              (Format.sprintf
-                 "Warning: something went wrong trying to get the commit sha \
-                  of the source code project: %s"
-                 (Printexc.to_string exc))
-          in
-          Error err
-    with exc ->
-      let err =
-        Logs.Warning
-          (Format.sprintf
-             "Warning: something went wrong trying to get the commit sha of \
-              the source code project: %s"
-             (Printexc.to_string exc))
-      in
-      Error err
+  (* let get_commit_sha ~proj_paths =
+     let cmd = "git rev-parse HEAD" in
+     try
+       let cwd = Unix.getcwd () in
+       Unix.chdir @@ Fpath.to_string proj_paths;
+       let ic = Unix.open_process_in cmd in
+       Unix.chdir cwd;
+       match input_line ic with
+       | sha -> Ok sha
+       | exception exc ->
+           let err =
+             Logs.Warning
+               (Format.sprintf
+                  "Warning: something went wrong trying to get the commit sha \
+                   of the source code project: %s"
+                  (Printexc.to_string exc))
+           in
+           Error err
+     with exc ->
+       let err =
+         Logs.Warning
+           (Format.sprintf
+              "Warning: something went wrong trying to get the commit sha of \
+               the source code project: %s"
+              (Printexc.to_string exc))
+       in
+       Error err *)
 
   let get_date () =
     let epoch = Unix.time () |> Ptime.of_float_s |> Option.get in
@@ -238,7 +239,9 @@ module With_performance = struct
     }
 
   (* FIXME!! *)
-  let persist_metadata tables ~proj_path ~merlin ~query_time =
+  let persist_metadata tables ~proj_paths ~merlin ~query_time =
+    (* FIXME: add all proj_paths with commit shas to metadata*)
+    let _ = proj_paths in
     let metadata =
       (* if pure then
            {
@@ -250,15 +253,21 @@ module With_performance = struct
            }
          else *)
       let total_time = Sys.time () in
-      let source_code_commit_sha =
-        match Metadata.get_commit_sha ~proj_path with
-        | Ok sha -> Some sha
-        | Error log ->
-            persist_logs ~log tables;
-            None
-      in
+      (* let source_code_commit_sha =
+           match Metadata.get_commit_sha ~proj_paths with
+           | Ok sha -> Some sha
+           | Error log ->
+               persist_logs ~log tables;
+               None
+         in *)
       let date = Some (Metadata.get_date ()) in
-      { Metadata.merlin; source_code_commit_sha; date; total_time; query_time }
+      {
+        Metadata.merlin;
+        (* source_code_commit_sha *)
+        date;
+        total_time;
+        query_time;
+      }
     in
     tables.metadata <- metadata :: tables.metadata
 end

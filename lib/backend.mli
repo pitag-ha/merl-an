@@ -44,7 +44,7 @@ module type T = sig
   val dump : dump_dir:Fpath.t -> t -> unit
   val all_files : unit -> Fpath.t list
 
-  val persist_metadata : t -> proj_path:Fpath.t -> merlin:Merlin.t -> query_time:float -> unit
+  val persist_metadata : t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> query_time:float -> unit
 end
 
 module With_performance : T
