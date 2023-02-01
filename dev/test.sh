@@ -1,3 +1,3 @@
 #!/bin/bash
 
-dune exec -- _build/default/bin/main.exe -r 1 -s 1
+dune exec -- _build/default/bin/main.exe pure -s 1 --data data/merl-an_pure

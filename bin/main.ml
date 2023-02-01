@@ -1,9 +1,10 @@
 open! Merl_an.Import
 open Cmdliner
 
-let analyze ~pure (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
-    (`Dir_name data_dir) (`Cold cold) (`Sample_size sample_size)
-    (`Query_types query_types) (`Extensions extensions) =
+let analyze ~backend:(module Backend : Merl_an.Backend.T) (`Repeats repeats)
+    (`Merlin merlin_path) (`Proj_dir proj_dir) (`Dir_name data_dir) (`Cold cold)
+    (`Sample_size sample_size) (`Query_types query_types)
+    (`Extensions extensions) =
   let merlin_frontend =
     if cold then Merl_an.Merlin.Single else Merl_an.Merlin.Server
   in
@@ -18,7 +19,8 @@ let analyze ~pure (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
         let ts = Int.to_string @@ Int.of_float @@ Unix.time () in
         Fpath.v ("data/" ^ proj_name ^ "+" ^ ts)
   in
-  let data = Merl_an.Data.init ~pure data_dir in
+  let module D = Merl_an.Data.Make (Backend) in
+  let data = D.init data_dir in
   match Merl_an.File.get_files ~extensions proj_path with
   | Ok files ->
       (*TODO: add terminal logging when getting the files: log number of files that are going to be benchmarked and, at the end, log how many that are.*)
@@ -28,28 +30,31 @@ let analyze ~pure (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
         with
         | None ->
             let log =
-              Merl_an.Tables.Logs.Warning
+              Merl_an.Logs.Warning
                 (Format.sprintf "File %s couldn't be parsed and was ignored.\n"
                    (Yojson.Safe.to_string @@ Merl_an.File.to_yojson file))
             in
-            let updater = Merl_an.Tables.update_log ~log in
-            Merl_an.Data.update_tables ~updater data;
+            D.persist_logs ~log data;
             (qt, id_counter)
         | Some (samples, new_id_counter) ->
-            ( Merl_an.Samples.analyze ~merlin ~query_time:qt ~repeats data
-                samples,
+            let update = D.update data in
+            let persist_logs log = D.persist_logs ~log data in
+            ( Merl_an.Samples.analyze ~merlin ~query_time:qt ~repeats ~update
+                ~persist_logs samples,
               new_id_counter )
       in
       let query_time, _last_sample_id =
         List.fold_over_product ~l1:files ~l2:query_types ~init:(0., 0)
           side_effectively_add_data
       in
-      let updater =
-        Merl_an.Tables.update_metadata ~proj_path ~merlin
-          ~query_time:(Some query_time)
-      in
-      Merl_an.Data.update_tables ~updater data;
-      Merl_an.Data.dump data;
+      D.persist_metadata data ~proj_path ~merlin ~query_time;
+      D.dump data;
+      (* let updater =
+           Merl_an.Backend.update_metadata ~proj_path ~merlin
+             ~query_time
+         in *)
+      (* Merl_an.Data.update_tables ~updater data; *)
+      (* METADATA FIX *)
       Merl_an.Merlin.stop_server merlin
   | Error (`Msg err) ->
       Printf.eprintf "%s" err;
@@ -68,7 +73,9 @@ let man =
 
 let performance_term =
   Term.(
-    const (analyze ~pure:false)
+    const
+      (analyze
+         ~backend:(module Merl_an.Backend.With_performance : Merl_an.Backend.T))
     $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dir $ Args.dir_name
     $ Args.cold $ Args.sample_size $ Args.query_types $ Args.extensions)
 
@@ -85,7 +92,11 @@ let performance =
 let pure =
   let pure_term =
     Term.(
-      const (analyze ~pure:true (`Repeats 1))
+      const
+        (analyze
+           ~backend:
+             (module Merl_an.Backend.With_performance : Merl_an.Backend.T)
+           (`Repeats 1))
       $ Args.merlin $ Args.proj_dir $ Args.dir_name $ Args.cold
       $ Args.sample_size $ Args.query_types $ Args.extensions)
   in
