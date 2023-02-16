@@ -8,7 +8,7 @@ val filename : t -> string
 (** Returns the name of a file *)
 
 val get_files :
-  extensions:string list -> Fpath.t -> (t list, Rresult.R.msg) result
+  extensions:string list -> Fpath.t list -> (t list, Rresult.R.msg) result
 (** [get_files ~extension dir] produces the list of all files with extension
     [extension] inside [dir] *)
 

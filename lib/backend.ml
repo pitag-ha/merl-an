@@ -23,7 +23,7 @@ module type Data_tables = sig
   val all_files : unit -> Fpath.t list
 
   val wrap_up :
-    t -> dump_dir:Fpath.t -> proj_path:Fpath.t -> query_time:float -> unit
+    t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> query_time:float -> unit
 end
 
 module Field = struct
@@ -189,7 +189,7 @@ module Performance = struct
   module Metadata = struct
     type t = {
       date : string option;
-      proj : string;
+      proj : string list;
       total_time : float;
       query_time : float;
     }
@@ -205,11 +205,16 @@ module Performance = struct
       let (year, month, day), _ = Ptime.to_date_time epoch in
       Printf.sprintf "%i/%i/%i" day month year
 
-    let produce_and_dump ~dump_dir ~proj_path ~query_time =
+    let produce_and_dump ~dump_dir ~proj_paths ~query_time =
       let metadata =
         let total_time = Sys.time () in
         let date = Some (get_date ()) in
-        { date; proj = Fpath.to_string proj_path; total_time; query_time }
+        {
+          date;
+          proj = List.map Fpath.to_string proj_paths;
+          total_time;
+          query_time;
+        }
       in
       let file_path = Fpath.(to_string @@ append dump_dir file_name) in
       let oc = open_out file_path in
@@ -220,9 +225,9 @@ module Performance = struct
           Format.fprintf ppf "%a" pp metadata)
   end
 
-  let wrap_up _t ~dump_dir ~proj_path ~query_time =
+  let wrap_up _t ~dump_dir ~proj_paths ~query_time =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
-    Metadata.produce_and_dump ~dump_dir ~proj_path ~query_time
+    Metadata.produce_and_dump ~dump_dir ~proj_paths ~query_time
 
   let all_files () =
     let f = Field.to_filename in
@@ -260,7 +265,7 @@ module Regression = struct
   let persist_logs ~log tables = tables.logs <- log :: tables.logs
   let create_empty () = { query_responses = []; commands = []; logs = [] }
 
-  let wrap_up _t ~dump_dir:_ ~proj_path:_ ~query_time:_ =
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~query_time:_ =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
     ()
 

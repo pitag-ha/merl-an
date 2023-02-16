@@ -4,7 +4,7 @@ open Cmdliner
 val merlin : [> `Merlin of string ] Term.t
 (** Path to the ocamlmerlin executable. Defaults to [ocamlmerlin].*)
 
-val proj_dir : [> `Proj_dir of string ] Term.t
+val proj_dirs : [> `Proj_dirs of string list ] Term.t
 (** Directory path of the project, on which you want merlin to be analyzed.
     Defaults to [.] *)
 

@@ -2,7 +2,7 @@ open! Merl_an.Import
 open Cmdliner
 
 let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
-    (`Repeats repeats) (`Merlin merlin_path) (`Proj_dir proj_dir)
+    (`Repeats repeats) (`Merlin merlin_path) (`Proj_dirs proj_dirs)
     (`Dir_name data_dir) (`Cold cold) (`Sample_size sample_size)
     (`Query_types query_types) (`Extensions extensions) =
   let merlin_frontend =
@@ -10,18 +10,29 @@ let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
   in
   let merlin_path = Fpath.v merlin_path in
   let merlin = Merl_an.Merlin.make merlin_path merlin_frontend in
-  let proj_path = Fpath.v (Unix.realpath proj_dir) in
+  let proj_path dir = Fpath.v @@ Unix.realpath @@ dir in
   let data_dir =
     match data_dir with
     | Some dir -> Fpath.v dir
     | None ->
-        let proj_name = Fpath.basename proj_path in
+        let proj_name =
+          match proj_dirs with
+          | [] ->
+              Printf.eprintf "Expected at least one file or project to analyze";
+              exit 50
+          | [ proj_dir ] -> Fpath.basename @@ proj_path proj_dir
+          | proj_dir :: l ->
+              let num = List.length l in
+              let base = Fpath.basename @@ proj_path proj_dir in
+              Format.sprintf "%s+%iothers" base num
+        in
         let ts = Int.to_string @@ Int.of_float @@ Unix.time () in
         Fpath.v ("data/" ^ proj_name ^ "+" ^ ts)
   in
   let module D = Merl_an.Data.Make (Backend) in
   let data = D.init data_dir in
-  match Merl_an.File.get_files ~extensions proj_path with
+  let proj_paths = List.map proj_path proj_dirs in
+  match Merl_an.File.get_files ~extensions proj_paths with
   | Ok files ->
       (*TODO: add terminal logging when getting the files: log number of files that are going to be benchmarked and, at the end, log how many that are.*)
       let side_effectively_add_data (qt, id_counter) (file, query_type) =
@@ -52,7 +63,7 @@ let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
           side_effectively_add_data
       in
       D.dump data;
-      D.wrap_up data ~proj_path ~query_time;
+      D.wrap_up data ~proj_paths ~query_time;
       Merl_an.Merlin.stop_server merlin
   | Error (`Msg err) ->
       Printf.eprintf "%s" err;
@@ -75,7 +86,7 @@ let performance_term =
   in
   Term.(
     const (analyze ~backend)
-    $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dir $ Args.dir_name
+    $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dirs $ Args.dir_name
     $ Args.cold $ Args.sample_size $ Args.query_types $ Args.extensions)
 
 let performance =
@@ -95,7 +106,7 @@ let regression =
   let regression_term =
     Term.(
       const (analyze ~backend (`Repeats 1))
-      $ Args.merlin $ Args.proj_dir $ Args.dir_name $ Args.cold
+      $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.cold
       $ Args.sample_size $ Args.query_types $ Args.extensions)
   in
   let info =

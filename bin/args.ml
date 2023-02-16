@@ -9,14 +9,14 @@ let merlin =
     (fun x -> `Merlin x)
     Arg.(value & opt string "ocamlmerlin" & info [ "merlin"; "m" ] ~doc)
 
-let proj_dir =
+let proj_dirs =
   let doc =
-    "Directory path of the project, on which you want merlin to be analyzed. \
-     Defaults to [.]"
+    "Directory path(s) of the project(s)/file(s), on which you want merlin to \
+     be analyzed. Defaults to the cwd."
   in
   named
-    (fun x -> `Proj_dir x)
-    Arg.(value & opt string "." & info [ "project"; "p" ] ~doc)
+    (fun x -> `Proj_dirs x)
+    Arg.(value & opt (list string) [ "." ] & info [ "project"; "p" ] ~doc)
 
 let dir_name =
   let doc =
