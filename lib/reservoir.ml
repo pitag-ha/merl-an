@@ -5,10 +5,10 @@ open! Import
 type state = { i : int; w : float }
 
 type 'a t = {
-  reservoir : 'a Array.t;
   desired_size : int;
-  state : state;
-  update_index : int;
+  reservoir : 'a Array.t;
+  mutable state : state;
+  mutable update_index : int;
 }
 
 let init_state ~random_state k =
@@ -52,20 +52,21 @@ let init ~placeholder ~random_state k =
   { reservoir; desired_size = k; state; update_index = 0 }
 
 let update ~random_state
-    ({ reservoir; desired_size = k; state = { i; w }; update_index } as smth) input =
-  let updated_index = { smth with update_index = smth.update_index + 1 } in
+    ({ reservoir; desired_size = k; state = { i; w }; update_index } as smth)
+    input =
   if update_index < k then
     let () = reservoir.(update_index) <- input in
-    updated_index
+    smth.update_index <- update_index + 1
   else if update_index = i then
     let random_index = Random.State.int random_state k in
     let () = reservoir.(random_index) <- input in
     let r () = Random.State.float random_state 1.0 in
     let new_i = i + int_of_float (log (r ()) /. log (1. -. w)) + 1 in
     let new_w = w *. exp (log (r ()) /. float_of_int k) in
-    { updated_index with state = { i = new_i; w = new_w } }
-  else
-    updated_index
+    let new_state = { i = new_i; w = new_w } in
+    let () = smth.state <- new_state in
+    smth.update_index <- update_index + 1
+  else smth.update_index <- update_index + 1
 
 let nth n r = r.(n)
 

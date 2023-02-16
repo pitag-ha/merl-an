@@ -15,7 +15,7 @@ val init : placeholder:'a -> random_state:Random_state.t -> int -> 'a t
     sample set of size [size] and type ['a]. [placeholder] can be any value of
     type ['a].*)
 
-val update : random_state:Random_state.t -> 'a t -> 'a -> 'a t
+val update : random_state:Random_state.t -> 'a t -> 'a -> unit
 (** Performs one iteration of the reservoir sampling algorithm *)
 
 val get_samples :

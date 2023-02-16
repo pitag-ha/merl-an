@@ -8,45 +8,34 @@ type t = {
   query_type : Merlin.Query_type.t;
 }
 
-let file_traversal ~random_state query_type =
+let file_traversal ~update_reservoir query_type =
   let open Ppxlib in
   object
-    inherit
-      [(Location.t * Longident.t option) Reservoir.t * bool] Ast_traverse.fold as super
+    inherit [bool] Ast_traverse.fold as super
 
     (* Possible FIXME: a longident such as [M.f] is only taken into account once all together as opposed to splitting it into [M] and [f]. to fix that, the parsing of the longident would have to be done manually (as opposed to further recursing it) in order to remember their individual location, which isn't reflected in the AST node*)
-    method! longident_loc { loc = new_loc; txt = new_longident }
-        (reservoir, in_vb) =
+    method! longident_loc { loc = new_loc; txt = new_longident } in_vb =
       if Merlin.Query_type.(has_target query_type Longident) then
-        let new_reservoir =
-          Reservoir.update ~random_state reservoir (new_loc, Some new_longident)
-        in
-        (new_reservoir, in_vb)
-      else (reservoir, in_vb)
+        update_reservoir (new_loc, Some new_longident);
+      in_vb
 
-    method! expression e (reservoir, in_vb) =
+    method! expression e in_vb =
       if Merlin.Query_type.(has_target query_type Expression) then
-        let new_reservoir =
-          Reservoir.update ~random_state reservoir (e.pexp_loc, None)
-        in
-        super#expression e (new_reservoir, in_vb)
-      else super#expression e (reservoir, in_vb)
+        update_reservoir (e.pexp_loc, None);
+      super#expression e in_vb
 
-    method! value_binding vb (reservoir, _) =
-      super#value_binding vb (reservoir, true)
+    method! value_binding vb _ = super#value_binding vb true
 
-    method! pattern p (reservoir, in_vb) =
+    method! pattern p in_vb =
       match
         ( Merlin.Query_type.(has_target query_type Var_pattern),
           in_vb,
           p.ppat_desc )
       with
       | true, false, Ppat_var { txt = _; loc } ->
-          let new_reservoir =
-            Reservoir.update ~random_state reservoir (loc, None)
-          in
-          super#pattern p (new_reservoir, false)
-      | _ -> super#pattern p (reservoir, false)
+          update_reservoir (loc, None);
+          super#pattern p false
+      | _ -> super#pattern p false
   end
 
 let generate ~sample_size ~id_counter file query_type =
@@ -56,14 +45,15 @@ let generate ~sample_size ~id_counter file query_type =
       (* FIXME: filter out locations that would return an error anyways (possibly similar to how patterns are filtered out for [case-analysis] if they belong to a value binding) *)
       (* TODO: add info to each sample about what kind of node it corresponds to (interesting for queries with more than one possible type of node) *)
       let random_state = Reservoir.Random_state.make file in
-      let traverser = file_traversal ~random_state query_type in
-      let reservoir, _ =
-        let a =
-          Reservoir.init ~placeholder:(Location.none, None) ~random_state
-            sample_size
-        in
+      let reservoir =
+        Reservoir.init ~placeholder:(Location.none, None) ~random_state
+          sample_size
+      in
+      let update_reservoir = Reservoir.update ~random_state reservoir in
+      let traverser = file_traversal ~update_reservoir query_type in
+      let _ =
         let is_in_value_binding = false in
-        traverser#structure ast (a, is_in_value_binding)
+        traverser#structure ast is_in_value_binding
       in
       let samples =
         let make_sample ~id sample = { id; sample } in
