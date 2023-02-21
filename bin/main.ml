@@ -2,14 +2,13 @@ open! Merl_an.Import
 open Cmdliner
 
 let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
-    (`Repeats repeats) (`Merlin merlin_path) (`Proj_dirs proj_dirs)
-    (`Dir_name data_dir) (`Cold cold) (`Sample_size sample_size)
+    (`Repeats repeats) (`Cache cache_workflows) (`Merlin merlin_path)
+    (`Proj_dirs proj_dirs) (`Dir_name data_dir) (`Sample_size sample_size)
     (`Query_types query_types) (`Extensions extensions) =
-  let merlin_frontend =
-    if cold then Merl_an.Merlin.Single else Merl_an.Merlin.Server
-  in
   let merlin_path = Fpath.v merlin_path in
-  let merlin = Merl_an.Merlin.make merlin_path merlin_frontend in
+  let merlins =
+    List.mapi (fun i -> Merl_an.Merlin.make i merlin_path) cache_workflows
+  in
   let proj_path dir = Fpath.v @@ Unix.realpath @@ dir in
   let data_dir =
     match data_dir with
@@ -30,10 +29,10 @@ let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
         Fpath.v ("data/" ^ proj_name ^ "+" ^ ts)
   in
   let module D = Merl_an.Data.Make (Backend) in
-  let data = D.init data_dir in
+  let data = D.init merlins data_dir in
   let proj_paths = List.map proj_path proj_dirs in
   match Merl_an.File.get_files ~extensions proj_paths with
-  | Ok files ->
+  | Ok files -> (
       (*TODO: add terminal logging when getting the files: log number of files that are going to be benchmarked and, at the end, log how many that are.*)
       let side_effectively_add_data (qt, id_counter) (file, query_type) =
         match
@@ -50,7 +49,7 @@ let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
         | Some (samples, new_id_counter) -> (
             let update = D.update data in
             match
-              Merl_an.Samples.analyze ~merlin ~query_time:qt ~repeats ~update
+              Merl_an.Samples.analyze ~merlins ~query_time:qt ~repeats ~update
                 samples
             with
             | Ok new_query_time -> (new_query_time, new_id_counter)
@@ -64,7 +63,9 @@ let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
       in
       D.dump data;
       D.wrap_up data ~proj_paths ~query_time;
-      Merl_an.Merlin.stop_server merlin
+      match List.find_opt Merl_an.Merlin.is_server merlins with
+      | Some merlin -> Merl_an.Merlin.stop_server merlin
+      | None -> ())
   | Error (`Msg err) ->
       Printf.eprintf "%s" err;
       exit 50
@@ -86,8 +87,9 @@ let performance_term =
   in
   Term.(
     const (analyze ~backend)
-    $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dirs $ Args.dir_name
-    $ Args.cold $ Args.sample_size $ Args.query_types $ Args.extensions)
+    $ Args.repeats_per_sample $ Args.cache_workflows $ Args.merlin
+    $ Args.proj_dirs $ Args.dir_name $ Args.sample_size $ Args.query_types
+    $ Args.extensions)
 
 let performance =
   let info =
@@ -105,9 +107,10 @@ let regression =
   in
   let regression_term =
     Term.(
-      const (analyze ~backend (`Repeats 1))
-      $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.cold
-      $ Args.sample_size $ Args.query_types $ Args.extensions)
+      const
+        (analyze ~backend (`Repeats 1) (`Cache [ Merl_an.Merlin.Cache.Warm ]))
+      $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
+      $ Args.query_types $ Args.extensions)
   in
   let info =
     let doc =

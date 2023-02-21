@@ -29,16 +29,31 @@ let dir_name =
     (fun x -> `Dir_name x)
     Arg.(value & opt (some string) None & info [ "data" ] ~doc)
 
-let cold =
+let cache_workflows =
   let doc =
-    "By default, the merlin frontend [server] is being used and its cache is \
-     being initialized before collecting the data. That simulates a user doing \
-     lots of merlin queries without modifying the source code in between. If \
-     you want to simluate a user, who modifies the source code each time \
-     between two merlin queries, use this flag: it switches the frontend to \
-     [single]."
+    "This tool supports different workflows simulating different states of the \
+     [ocamlmerlin] cache. The option [warm] simulates the situation of a cache \
+     that's initialized in terms of [cmi]-files, but not in terms of \
+     [cmt]-files: it uses the merlin server frontend and only initializes the \
+     cache via a general command using [cmt]-files. The option [freezing] \
+     simulates the situation of opening a new project and running a merlin \
+     query for the first time: it uses the single frontend.\n\
+     By default, this tool gathers data for the three workflows. You can \
+     restrict to less workflows via this option.\n\
+    \    "
+    (*TODO: Add: The option [hot] simulates the situation of having a \
+      fully initialized cache: it uses the merlin server frontend and \
+      initializes the cache 100%.*)
   in
-  named (fun x -> `Cold x) Arg.(value & flag & info [ "cold" ] ~doc)
+  let e =
+    Arg.enum
+    @@ List.map
+         (fun qt -> (Merl_an.Merlin.Cache.to_string qt, qt))
+         Merl_an.Merlin.Cache.all
+  in
+  named
+    (fun x -> `Cache x)
+    Arg.(value & opt (list e) Merl_an.Merlin.Cache.all & info [ "cache" ] ~doc)
 
 let sample_size =
   (* FIXME: Make that a relative numer: relative to the size of the file. *)

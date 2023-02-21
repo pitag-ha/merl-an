@@ -7,6 +7,7 @@ type sample = {
   cmd : Merlin.Cmd.t;
   file : File.t;
   loc : Warnings.loc;
+  merlin_id : int;
   query_type : Merlin.Query_type.t;
 }
 
@@ -17,7 +18,8 @@ module Make (Backend : Backend.Data_tables) : sig
       (unmutable) and the data that's being collected step by step by the tool
       (mutable). *)
 
-  val init : Fpath.t -> t
+  (* TODO: this shouldn't be only exactly merlins and dump_dir, but all configuration data. and the data should be stored in Data.t as well*)
+  val init : Merlin.t list -> Fpath.t -> t
   (** [init ~pure dir_path] returns a data instance with empty mutable content.
       The provided path [dir_path] is the path of the directory, inside which
       the data will be persisted as json-line-files. *)

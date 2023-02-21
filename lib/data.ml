@@ -7,6 +7,7 @@ type sample = {
   cmd : Merlin.Cmd.t;
   file : File.t;
   loc : Warnings.loc;
+  merlin_id : int;
   query_type : Merlin.Query_type.t;
 }
 
@@ -57,9 +58,10 @@ module Make (B : Backend.Data_tables) = struct
             close_out_noerr oc;
             false)
 
-  let init dump_dir =
+  (* TODO: this shouldn't be only exactly merlins and dump_dir, but all configuration data. and the data should be stored in Data.t as well*)
+  let init merlins dump_dir =
     create_dir_recursively dump_dir;
-    let tables = B.create_empty () in
+    let tables = B.create_initial merlins in
     let data_files = B.all_files () in
     create_files dump_dir data_files;
     if some_file_isnt_writable dump_dir data_files then (
@@ -67,8 +69,10 @@ module Make (B : Backend.Data_tables) = struct
       exit 20)
     else { dump_dir; content = tables }
 
-  let update { content; _ } { id; responses; cmd; file; loc; query_type } =
-    B.update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type content
+  let update { content; _ }
+      { id; responses; cmd; file; loc; merlin_id; query_type } =
+    B.update_analysis_data ~id ~responses ~cmd ~file ~loc ~merlin_id ~query_type
+      content
 
   let persist_logs ~log { content; _ } = B.persist_logs ~log content
   let wrap_up { content; dump_dir } = B.wrap_up content ~dump_dir

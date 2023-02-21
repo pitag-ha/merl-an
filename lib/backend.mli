@@ -9,7 +9,7 @@ module type Data_tables = sig
   val kind : kind
   (** The backend kind *)
 
-  val create_empty : unit -> t
+  val create_initial : Merlin.t list -> t
   (** Initializes the tables. Data can then be appended to them. *)
 
   val update_analysis_data :
@@ -18,6 +18,7 @@ module type Data_tables = sig
     cmd:Merlin.Cmd.t ->
     file:File.t ->
     loc:Warnings.loc ->
+    merlin_id:int ->
     query_type:Merlin.Query_type.t ->
     t ->
     unit

@@ -1,15 +1,34 @@
-type frontend =
-  | Server
-  | Single  (** [ocamlmerlin] protocol to be used when running [ocamlmerlin] *)
+module Cache : sig
+  (** Kind of [ocamlmerlin] cache workflow to be used when running
+      [ocamlmerlin]. [Hot] corresponds to using the server frontend and a 100%
+      initialized cache; [Warm] corresponds to using the server frontend and a
+      partily initialized cache; [Freezing] corresponds to using the single
+      frontend. *)
+  type t = (*Hot |*) Warm | Freezing
+
+  val to_yojson : t -> Yojson.Safe.t
+  val to_string : t -> string
+
+  val all : t list
+  (** Contains all supported cache workflows. *)
+end
 
 type t
 (** Configuration details and metadata about the [ocamlmerlin] to be used *)
 
+val pp : Format.formatter -> t -> unit
 val to_yojson : t -> Yojson.Safe.t
 
-val make : Fpath.t -> frontend -> t
+val make : int -> ?comment:string -> Fpath.t -> Cache.t -> t
 (** Create a [t] value by providing the path of where your [ocamlmerlin]
-    executable lives and the frontend you want to be used *)
+    executable lives and the frontend you want to be used and the id you want to
+    attach to it. *)
+
+val get_id : t -> int
+(** Get the idea of your merlin instance *)
+
+val is_server : t -> bool
+(** Returns [true] if the frontend is [Server] and [false] if it's [Single] *)
 
 module Query_type : sig
   (** The [ocamlmerlin] queries that this tool can create analysis data for *)
@@ -71,11 +90,12 @@ end
 with type merlin := t
 
 val init_cache : query_time:float -> File.t -> t -> (float, Logs.t) Result.t
-(** [init_cache file merlin] inits the [merlin] cache on [file] if the frontend
-    is [Server]; does nothing if the frontend is [Single]. It inits the cache by
-    running a global command on the file. In case of success, it returns the
-    updated [query_time]. *)
+(** [init_cache file merlin] inits the [merlin] cache on [file]. This should be
+    called if one of the frontends is [Server]. It inits the cache by running a
+    global command on the file. In case of success, it returns the updated
+    [query_time]. *)
 
 val stop_server : t -> unit
-(** Stops the [ocamlmerlin] server if the frontend is [Server]; does nothing if
-    the frontend is [Single] *)
+(** Stops the [ocamlmerlin] server. This should be called at the end of the
+    whole process, if one of the frontends is [Server]; does nothing if the
+    frontend is [Single] *)

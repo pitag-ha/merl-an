@@ -1,6 +1,23 @@
 open! Import
 
-type frontend = Server | Single [@@deriving yojson]
+module Cache = struct
+  type t = (* | Hot *)
+    | Warm | Freezing [@@deriving to_yojson, enumerate]
+
+  let to_string = function
+    (* | Hot -> "hot" *)
+    | Warm -> "warm"
+    | Freezing -> "freezing"
+
+  let uses_server cache =
+    match cache with (* | Hot *)
+    | Warm -> true | Freezing -> false
+
+  let print path = function
+    (*| Hot*)
+    | Warm -> Format.sprintf "%s server" (Fpath.to_string path)
+    | Freezing -> Format.sprintf "%s single" (Fpath.to_string path)
+end
 
 module Path = struct
   type t = Fpath.t
@@ -8,14 +25,23 @@ module Path = struct
   let to_yojson path = `String (Fpath.to_string path)
 end
 
-type t = { path : Path.t; frontend : frontend; version : Yojson.Safe.t }
+type t = {
+  id : int;
+  path : Path.t;
+  frontend : Cache.t;
+  version : Yojson.Safe.t;
+  comment : string option;
+}
 [@@deriving to_yojson]
 
-let print path = function
-  | Server -> Format.sprintf "%s server" (Fpath.to_string path)
-  | Single -> Format.sprintf "%s single" (Fpath.to_string path)
+let pp ppf merlin =
+  Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson merlin))
 
-let pp ppf { path; frontend; _ } = Format.fprintf ppf "%s" (print path frontend)
+let get_id m = m.id
+let is_server merlin = Cache.uses_server merlin.frontend
+
+let basic_cmd ppf { path; frontend; _ } =
+  Format.fprintf ppf "%s" (Cache.print path frontend)
 
 let untimed_query_generic ~f cmd =
   let ic = Unix.open_process_in cmd in
@@ -45,10 +71,10 @@ let untimed_query_str cmd =
   let f = input_line in
   untimed_query_generic ~f cmd
 
-let make path frontend =
-  let cmd = Printf.sprintf "%s -version" (print path frontend) in
+let make id ?comment path cache =
+  let cmd = Printf.sprintf "%s -version" (Cache.print path cache) in
   let version = `String (untimed_query_str cmd) in
-  { path; frontend; version }
+  { id; path; frontend = cache; version; comment }
 
 module Query_type = struct
   (* TODO: also add [complete-prefix] command. that's a little more complex than the other commands since, aside location and file name, it also requires a prefix of the identifier as input. *)
@@ -106,32 +132,34 @@ module Cmd = struct
     match query_type with
     | Query_type.Locate ->
         Format.asprintf
-          " %a %s -look-for ml -position '%a' -index 0 -filename %a < %a" pp
-          merlin
+          " %a %s -look-for ml -position '%a' -index 0 -filename %a < %a"
+          basic_cmd merlin
           (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
     | Case_analysis ->
-        Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a" pp
-          merlin
+        Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a"
+          basic_cmd merlin
           (Query_type.to_string query_type)
           (Location.print_edge Left) loc
           (Location.print_edge Right)
           loc File.pp file File.pp file
     | Type_enclosing ->
-        Format.asprintf "%a %s -position '%a' -filename %a < %a" pp merlin
+        Format.asprintf "%a %s -position '%a' -filename %a < %a" basic_cmd
+          merlin
           (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
     | Occurrences ->
-        Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a" pp merlin
+        Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a" basic_cmd
+          merlin
           (Query_type.to_string query_type)
           (Location.print_edge Right)
           loc File.pp file File.pp file
 
   let some_global_cmd file merlin =
-    Format.asprintf "%a errors -filename %a < %a" pp merlin File.pp file File.pp
-      file
+    Format.asprintf "%a errors -filename %a < %a" basic_cmd merlin File.pp file
+      File.pp file
 
   let run_once ~query_time cmd =
     let start_time = Sys.time () in
@@ -149,20 +177,14 @@ module Cmd = struct
 end
 
 let init_cache ~query_time file merlin =
-  match merlin.frontend with
-  | Single -> Ok query_time
-  | Server -> (
-      let cmd = Cmd.some_global_cmd file merlin in
-      try
-        let _, query_time = Cmd.run_once ~query_time cmd in
-        Ok query_time
-      with exc -> Error (Logs.Error (Printexc.to_string exc)))
+  let cmd = Cmd.some_global_cmd file merlin in
+  try
+    let _, query_time = Cmd.run_once ~query_time cmd in
+    Ok query_time
+  with exc -> Error (Logs.Error (Printexc.to_string exc))
 
-let stop_server { path; frontend; _ } =
-  match frontend with
-  | Single -> ()
-  | Server -> (
-      let command = Fpath.to_string path ^ " server stop-server" in
-      match Sys.command command with
-      | 255 -> ()
-      | code -> failwith ("merlin exited with code " ^ string_of_int code))
+let stop_server { path; _ } =
+  let command = Fpath.to_string path ^ " server stop-server" in
+  match Sys.command command with
+  | 255 -> ()
+  | code -> failwith ("merlin exited with code " ^ string_of_int code)

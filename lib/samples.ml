@@ -61,7 +61,8 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~merlin ~query_time ~repeats ~update { samples; file; query_type } =
+let analyze ~merlins ~query_time ~repeats ~update { samples; file; query_type }
+    =
   let open Result.Syntax in
   if List.is_empty samples then
     Error
@@ -70,14 +71,29 @@ let analyze ~merlin ~query_time ~repeats ~update { samples; file; query_type } =
             (Yojson.Safe.to_string @@ File.to_yojson file)
             (Merlin.Query_type.to_string query_type)))
   else
-    let* query_time = Merlin.init_cache ~query_time file merlin in
-    let rec loop ~query_time samples =
-      match samples with
-      | [] -> query_time
-      | { id; sample = loc, _ } :: rest ->
-          let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
-          let responses, query_time = Merlin.Cmd.run ~query_time ~repeats cmd in
-          update { Data.id; responses; cmd; file; loc; query_type };
-          loop ~query_time rest
+    let* query_time =
+      match List.find_opt Merlin.is_server merlins with
+      | Some merlin -> Merlin.init_cache ~query_time file merlin
+      | None -> Ok query_time
     in
-    Ok (loop ~query_time samples)
+    let traverse_samples ~merlin ~query_time samples =
+      let rec loop ~query_time samples =
+        match samples with
+        | [] -> query_time
+        | { id; sample = loc, _ } :: rest ->
+            let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
+            let responses, query_time =
+              Merlin.Cmd.run ~query_time ~repeats cmd
+            in
+            let merlin_id = Merlin.get_id merlin in
+            update { Data.id; responses; cmd; file; loc; query_type; merlin_id };
+            loop ~query_time rest
+      in
+      loop ~query_time samples
+    in
+    let qt =
+      List.fold_left
+        (fun acc merlin -> acc +. traverse_samples ~merlin ~query_time samples)
+        query_time merlins
+    in
+    Ok qt

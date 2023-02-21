@@ -13,13 +13,18 @@ val dir_name : [> `Dir_name of string option ] Term.t
     exist, it's created. If the same directory was already used in the past, the
     data will be overridden. Defaults to [data/<project>+<unix_timestamp>/].*)
 
-val cold : [> `Cold of bool ] Term.t
-(** By default, the merlin frontend [server] is being used and its cache is
-    being initialized before collecting the data. That simulates a user doing
-    lots of merlin queries without modifying the source code in between. If you
-    want to simluate a user, who modifies the source code each time between two
-    merlin queries, use this flag: it switches the frontend to [single], which
-    is a similar behavior to using [server] without cache .*)
+val cache_workflows : [> `Cache of Merl_an.Merlin.Cache.t list ] Term.t
+(** This tool supports different workflows simulating different states of the
+    [ocamlmerlin] cache. The option [warm] simulates the situation of a cache
+    that's initialized in terms of [cmi]-files, but not in terms of [cmt]-files:
+    it uses the merlin server frontend and only initializes the cache via a
+    general command using [cmt]-files. The option [freezing] simulates the
+    situation of opening a new project and running a merlin query for the first
+    time: it uses the single frontend. By default, this tool gathers data for
+    the three workflows. You can restrict to less workflows via this option. *)
+(* TODO: Add: The option [hot] simulates the situation of having a
+    fully initialized cache: it uses the merlin server frontend and initializes
+    the cache 100%.*)
 
 val sample_size : [ `Sample_size of int ] Term.t
 (** Number of samples per file. Defaults to 30.*)
