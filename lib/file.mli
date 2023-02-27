@@ -1,7 +1,7 @@
 type t
 (** Represents a source code file in the code base being benchmarked *)
 
-val to_yojson : t -> Yojson.Safe.t
+val yojson_of_t : t -> Yojson.Safe.t
 val pp : Format.formatter -> t -> unit
 
 val filename : t -> string

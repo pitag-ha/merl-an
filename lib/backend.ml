@@ -61,11 +61,11 @@ module P = struct
     query_type : Merlin.Query_type.t;
     loc : Location.t;
   }
-  [@@deriving to_yojson]
+  [@@deriving yojson_of]
 
   (* FIXME: print each of the sample repeats in a separate json field *)
   let pp ppf data =
-    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
 module Query_response = struct
@@ -74,18 +74,18 @@ module Query_response = struct
     responses : Merlin.Response.t list;
     merlin_id : int;
   }
-  [@@deriving to_yojson]
+  [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
   let pp ppf data =
-    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
 module Command = struct
-  type t = { sample_id : int; cmd : Merlin.Cmd.t } [@@deriving to_yojson]
+  type t = { sample_id : int; cmd : Merlin.Cmd.t } [@@deriving yojson_of]
 
   let pp ppf data =
-    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
 (* module Files = struct
@@ -218,12 +218,12 @@ module Performance = struct
       total_time : float;
       query_time : float;
     }
-    [@@deriving to_yojson]
+    [@@deriving yojson_of]
 
     let file_name = Fpath.v "metadata.json"
 
     let pp ppf data =
-      Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson data))
+      Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 
     let get_date () =
       let epoch = Unix.time () |> Ptime.of_float_s |> Option.get in

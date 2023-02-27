@@ -42,7 +42,7 @@ let analyze ~backend:(module Backend : Merl_an.Backend.Data_tables)
             let log =
               Merl_an.Logs.Warning
                 (Format.sprintf "File %s couldn't be parsed and was ignored.\n"
-                   (Yojson.Safe.to_string @@ Merl_an.File.to_yojson file))
+                   (Yojson.Safe.to_string @@ Merl_an.File.yojson_of_t file))
             in
             D.persist_logs ~log data;
             (qt, id_counter)

@@ -68,7 +68,7 @@ let analyze ~merlins ~query_time ~repeats ~update { samples; file; query_type }
     Error
       (Logs.Log
          (Format.sprintf "File %s: there are no samples for query [%s]."
-            (Yojson.Safe.to_string @@ File.to_yojson file)
+            (Yojson.Safe.to_string @@ File.yojson_of_t file)
             (Merlin.Query_type.to_string query_type)))
   else
     let* query_time =

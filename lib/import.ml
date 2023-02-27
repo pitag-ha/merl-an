@@ -37,5 +37,13 @@ module Location = struct
     in
     Format.fprintf ppf "%i:%i" line col
 
-  let to_yojson loc = `String (Format.asprintf "%a" print loc)
+  let yojson_of_t loc = `String (Format.asprintf "%a" print loc)
+end
+
+module Yojson = struct
+  module Safe = struct
+    include Yojson.Safe
+
+    let yojson_of_t = Fun.id
+  end
 end

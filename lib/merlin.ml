@@ -2,7 +2,7 @@ open! Import
 
 module Cache = struct
   type t = (* | Hot *)
-    | Warm | Freezing [@@deriving to_yojson, enumerate]
+    | Warm | Freezing [@@deriving yojson_of, enumerate]
 
   let to_string = function
     (* | Hot -> "hot" *)
@@ -22,7 +22,7 @@ end
 module Path = struct
   type t = Fpath.t
 
-  let to_yojson path = `String (Fpath.to_string path)
+  let yojson_of_t path = `String (Fpath.to_string path)
 end
 
 type t = {
@@ -32,10 +32,10 @@ type t = {
   version : Yojson.Safe.t;
   comment : string option;
 }
-[@@deriving to_yojson]
+[@@deriving yojson_of]
 
 let pp ppf merlin =
-  Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (to_yojson merlin))
+  Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t merlin))
 
 let get_id m = m.id
 let is_server merlin = Cache.uses_server merlin.frontend
@@ -79,7 +79,7 @@ let make id ?comment path cache =
 module Query_type = struct
   (* TODO: also add [complete-prefix] command. that's a little more complex than the other commands since, aside location and file name, it also requires a prefix of the identifier as input. *)
   type t = Locate | Case_analysis | Type_enclosing | Occurrences
-  [@@deriving to_yojson, enumerate]
+  [@@deriving yojson_of, enumerate]
 
   let to_string = function
     | Locate -> "locate"
@@ -103,7 +103,7 @@ end
 module Response = struct
   type t = Yojson.Safe.t
 
-  let to_yojson x = x
+  let yojson_of_t x = x
 
   let get_timing = function
     | `Assoc answer -> (
@@ -126,7 +126,7 @@ end
 module Cmd = struct
   type t = string
 
-  let to_yojson cmd = `String cmd
+  let yojson_of_t cmd = `String cmd
 
   let make ~query_type ~file ~loc merlin =
     match query_type with

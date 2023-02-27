@@ -6,7 +6,7 @@ module Cache : sig
       frontend. *)
   type t = (*Hot |*) Warm | Freezing
 
-  val to_yojson : t -> Yojson.Safe.t
+  val yojson_of_t : t -> Yojson.Safe.t
   val to_string : t -> string
 
   val all : t list
@@ -17,7 +17,7 @@ type t
 (** Configuration details and metadata about the [ocamlmerlin] to be used *)
 
 val pp : Format.formatter -> t -> unit
-val to_yojson : t -> Yojson.Safe.t
+val yojson_of_t : t -> Yojson.Safe.t
 
 val make : int -> ?comment:string -> Fpath.t -> Cache.t -> t
 (** Create a [t] value by providing the path of where your [ocamlmerlin]
@@ -34,7 +34,7 @@ module Query_type : sig
   (** The [ocamlmerlin] queries that this tool can create analysis data for *)
   type t = Locate | Case_analysis | Type_enclosing | Occurrences
 
-  val to_yojson : t -> Yojson.Safe.t
+  val yojson_of_t : t -> Yojson.Safe.t
   val to_string : t -> string
 
   val all : t list
@@ -54,7 +54,7 @@ module Response : sig
   type t
   (** Represents the response of an [ocamlmerlin] command *)
 
-  val to_yojson : t -> Yojson.Safe.t
+  val yojson_of_t : t -> Yojson.Safe.t
 
   val get_timing : t -> int
   (** Extracts the information about time consumption from an [ocamlmerlin]
@@ -72,7 +72,7 @@ module Cmd : sig
   (** Represents a concrete [ocamlmerlin] command including location and
       everything *)
 
-  val to_yojson : t -> Yojson.Safe.t
+  val yojson_of_t : t -> Yojson.Safe.t
 
   val make :
     query_type:Query_type.t -> file:File.t -> loc:Warnings.loc -> merlin -> t

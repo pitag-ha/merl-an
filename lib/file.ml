@@ -2,7 +2,7 @@ open! Import
 
 type t = Fpath.t
 
-let to_yojson file = `String (Fpath.to_string file)
+let yojson_of_t file = `String (Fpath.to_string file)
 let pp = Fpath.pp
 let filename = Fpath.to_string
 
