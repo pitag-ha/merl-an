@@ -75,7 +75,7 @@ module Cmd : sig
   val yojson_of_t : t -> Yojson.Safe.t
 
   val make :
-    query_type:Query_type.t -> file:File.t -> loc:Warnings.loc -> merlin -> t
+    query_type:Query_type.t -> file:File.t -> loc:Location.t -> merlin -> t
   (** [make ~query_type ~file ~loc merlin] creates a concrete [ocamlmerlin]
       command by providing the following: the query [query_type]; the target of
       the query, i.e. the source code [file] and the location [loc] inside that

@@ -9,7 +9,6 @@ type t = {
 }
 
 let file_traversal ~update_reservoir query_type =
-  let open Ppxlib in
   object
     inherit [bool] Ast_traverse.fold as super
 

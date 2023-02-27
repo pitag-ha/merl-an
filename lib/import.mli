@@ -1,3 +1,5 @@
+include module type of Ppxlib
+
 module Result : sig
   include module type of Stdlib.Result
 

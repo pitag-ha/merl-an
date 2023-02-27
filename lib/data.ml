@@ -6,7 +6,7 @@ type sample = {
   responses : Merlin.Response.t list;
   cmd : Merlin.Cmd.t;
   file : File.t;
-  loc : Warnings.loc;
+  loc : Location.t;
   merlin_id : int;
   query_type : Merlin.Query_type.t;
 }

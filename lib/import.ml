@@ -1,3 +1,5 @@
+include Ppxlib
+
 module Result = struct
   include Stdlib.Result
 
@@ -20,7 +22,7 @@ module List = struct
 end
 
 module Location = struct
-  include Ppxlib.Location
+  include Location
 
   type edge = Left | Right
 
