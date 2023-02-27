@@ -23,6 +23,11 @@ let file_traversal ~update_reservoir query_type =
         update_reservoir (e.pexp_loc, None);
       super#expression e in_vb
 
+    method! module_expr e in_vb =
+      if Merlin.Query_type.(has_target query_type Module_expr) then
+        update_reservoir (e.pmod_loc, None);
+      super#module_expr e in_vb
+
     method! value_binding vb _ = super#value_binding vb true
 
     method! pattern p in_vb =
