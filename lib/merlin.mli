@@ -45,7 +45,13 @@ module Query_type : sig
 
   (** The AST node types that can serve as target for (s)ome of the query types
       in [t] *)
-  type node = Longident | Expression | Var_pattern | Module_expr
+  type node =
+    | Longident
+    | Expression
+    | Var_pattern
+    | Module_expr
+    | Module_decl
+    | Module_type_decl
 
   val has_target : t -> node -> bool
   (** [has_target query_type node] checks whether [query_type] can act on AST

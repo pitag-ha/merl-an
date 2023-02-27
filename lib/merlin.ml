@@ -87,7 +87,13 @@ module Query_type = struct
     | Type_enclosing -> "type-enclosing"
     | Occurrences -> "occurrences"
 
-  type node = Longident | Expression | Var_pattern | Module_expr
+  type node =
+    | Longident
+    | Expression
+    | Var_pattern
+    | Module_expr
+    | Module_decl
+    | Module_type_decl
   [@@deriving yojson]
 
   let has_target qt target =
@@ -95,7 +101,8 @@ module Query_type = struct
       match qt with
       | Locate -> [ Longident ]
       | Case_analysis -> [ Expression; Var_pattern ]
-      | Type_enclosing -> [ Expression; Module_expr ]
+      | Type_enclosing ->
+          [ Expression; Module_expr; Module_decl; Module_type_decl ]
       | Occurrences -> [ Longident ]
     in
     List.mem target target_nodes
