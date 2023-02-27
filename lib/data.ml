@@ -26,23 +26,15 @@ module Make (B : Backend.Data_tables) = struct
         Fpath.pp data_path;
       Unix.sleep 60)
     else
-      let _ =
-        Fpath.segs data_path |> List.map Fpath.v
-        |> List.fold_left
-             (fun last_dir b ->
-               let dir =
-                 match last_dir with
-                 | Some last_dir -> Fpath.(append last_dir b)
-                 | None -> b
-               in
-               let () =
-                 try Sys.mkdir (Fpath.to_string dir) 0o777 with _ -> ()
-               in
-               Format.printf "dir: %a\n%!" Fpath.pp dir;
-               Some dir)
-             None
+      let rec get_all_subpaths acc = function
+        | _ :: rest as all ->
+            let acc = String.concat "/" (List.rev all) :: acc in
+            get_all_subpaths acc rest
+        | [] -> acc
       in
-      ()
+
+      Fpath.segs data_path |> List.rev |> get_all_subpaths []
+      |> List.iter (fun dir -> try Sys.mkdir dir 0o777 with _ -> ())
 
   let create_files dir =
     List.iter (fun fn ->
