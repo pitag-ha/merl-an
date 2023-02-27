@@ -1,3 +1,5 @@
+open! Import
+
 module Cache : sig
   (** Kind of [ocamlmerlin] cache workflow to be used when running
       [ocamlmerlin]. [Hot] corresponds to using the server frontend and a 100%

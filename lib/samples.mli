@@ -1,3 +1,5 @@
+open! Import
+
 type t
 (** Represents a sample set on a fixed file for a fixed merlin query type. *)
 

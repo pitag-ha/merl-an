@@ -61,10 +61,9 @@ module Make (B : Backend.Data_tables) = struct
       exit 20)
     else { dump_dir; content = tables }
 
-  let update { content; _ }
-      { id; responses; cmd; file; loc; merlin_id; query_type } =
+  let update t { id; responses; cmd; file; loc; merlin_id; query_type } =
     B.update_analysis_data ~id ~responses ~cmd ~file ~loc ~merlin_id ~query_type
-      content
+      t.content
 
   let persist_logs ~log { content; _ } = B.persist_logs ~log content
   let wrap_up { content; dump_dir } = B.wrap_up content ~dump_dir

@@ -51,26 +51,23 @@ let init ~placeholder ~random_state k =
   let state = init_state ~random_state k in
   { reservoir; desired_size = k; state; update_index = 0 }
 
-let update ~random_state
-    ({ reservoir; desired_size = k; state = { i; w }; update_index } as smth)
-    input =
-  if update_index < k then
-    let () = reservoir.(update_index) <- input in
-    smth.update_index <- update_index + 1
-  else if update_index = i then
-    let random_index = Random.State.int random_state k in
-    let () = reservoir.(random_index) <- input in
+let update ~random_state smth input =
+  if smth.update_index < smth.desired_size then
+    let () = smth.reservoir.(smth.update_index) <- input in
+    smth.update_index <- smth.update_index + 1
+  else if smth.update_index = smth.state.i then
+    let random_index = Random.State.int random_state smth.desired_size in
+    let () = smth.reservoir.(random_index) <- input in
     let r () = Random.State.float random_state 1.0 in
-    let new_i = i + int_of_float (log (r ()) /. log (1. -. w)) + 1 in
-    let new_w = w *. exp (log (r ()) /. float_of_int k) in
+    let new_i = smth.state.i + int_of_float (log (r ()) /. log (1. -. smth.state.w)) + 1 in
+    let new_w = smth.state.w *. exp (log (r ()) /. float_of_int smth.desired_size) in
     let new_state = { i = new_i; w = new_w } in
     let () = smth.state <- new_state in
-    smth.update_index <- update_index + 1
-  else smth.update_index <- update_index + 1
+    smth.update_index <- smth.update_index + 1
+  else smth.update_index <- smth.update_index + 1
 
 let nth n r = r.(n)
 
-let get_samples ~make_sample ~id_counter
-    { reservoir; desired_size; update_index; _ } =
-  let size = Int.min desired_size update_index in
-  List.init size (fun i -> make_sample ~id:(i + id_counter) (nth i reservoir))
+let get_samples ~make_sample ~id_counter smth =
+  let size = Int.min smth.desired_size smth.update_index in
+  List.init size (fun i -> make_sample ~id:(i + id_counter) (nth i smth.reservoir))

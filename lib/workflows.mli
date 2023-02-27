@@ -1,3 +1,5 @@
+open! Import
+
 val analyze :
   backend:(module Backend.Data_tables) ->
   [< `Repeats of int ] ->
@@ -8,4 +10,4 @@ val analyze :
   [< `Sample_size of int ] ->
   [< `Query_types of Merlin.Query_type.t list ] ->
   [< `Extensions of string list ] ->
-  unit
+  (unit, Rresult.R.msg) Result.t

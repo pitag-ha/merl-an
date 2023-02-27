@@ -1,3 +1,5 @@
+open! Import
+
 (** The different kinds of data backends that are supported. *)
 type kind = Perf | Regr
 
