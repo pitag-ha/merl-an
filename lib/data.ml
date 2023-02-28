@@ -12,7 +12,7 @@ type sample = {
 }
 
 module Make (B : Backend.Data_tables) = struct
-  (* TODO: should probably also contain `repeats` and all the other means of configuration *)
+  (* TODO: should probably also contain `repeats` and all the other means of configuration  *)
   type t = { dump_dir : Fpath.t; mutable content : B.t }
 
   let create_dir_recursively data_path =
