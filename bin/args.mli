@@ -12,7 +12,7 @@ val dir_name : [> `Dir_name of string option ] Term.t
     exist, it's created. If the same directory was already used in the past, the
     data will be overridden. Defaults to [data/<project>+<unix_timestamp>/].*)
 
-val cache_workflows : [> `Cache of Merl_an.Merlin.Cache.t list ] Term.t
+val cache_workflows : [> `Cache of Merl_an.Merlin.Cache_workflow.t list ] Term.t
 (** This tool supports different workflows simulating different states of the
     [ocamlmerlin] cache. The option [warm] simulates the situation of a cache
     that's initialized in terms of [cmi]-files, but not in terms of [cmt]-files:

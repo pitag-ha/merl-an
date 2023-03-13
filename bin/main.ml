@@ -52,7 +52,7 @@ let regression =
     Term.(
       const
         (analyze ~backend (`Repeats 1)
-           (`Cache [ Merl_an.Merlin.Cache.Buffer_typed ]))
+           (`Cache [ Merl_an.Merlin.Cache_workflow.Buffer_typed ]))
       $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
       $ Args.query_types $ Args.extensions)
   in

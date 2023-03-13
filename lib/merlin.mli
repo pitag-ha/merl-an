@@ -1,16 +1,17 @@
 open! Import
 
-module Cache : sig
+module Cache_workflow : sig
   (** Kind of [ocamlmerlin] cache population to be simulated when running
       [ocamlmerlin]. *)
   type t =
-    | Buffer_typed (* Buffer is typed. *)
-    (* | File_hash_diff (* Buffer is typed; file hash has changed but same AST. *) *)
-    (* | Cmis_cached (* Cmis are cached; buffer isn't typed. *) *)
+    | Buffer_typed
+    (* | File_hash_diff *)
+    (* | Cmis_cached *)
     | No_cache
 
   val yojson_of_t : t -> Yojson.Safe.t
   val to_string : t -> string
+  val description : t -> string
 
   val all : t list
   (** Contains all supported cache workflows. *)
@@ -22,7 +23,7 @@ type t
 val pp : Format.formatter -> t -> unit
 val yojson_of_t : t -> Yojson.Safe.t
 
-val make : int -> ?comment:string -> Fpath.t -> Cache.t -> t
+val make : int -> ?comment:string -> Fpath.t -> Cache_workflow.t -> t
 (** Create a [t] value by providing the path of where your [ocamlmerlin]
     executable lives and the frontend you want to be used and the id you want to
     attach to it. *)

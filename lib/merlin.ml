@@ -1,6 +1,6 @@
 open! Import
 
-module Cache = struct
+module Cache_workflow = struct
   type t =
     | Buffer_typed
     (* | File_hash_diff  *)
@@ -13,6 +13,12 @@ module Cache = struct
     (* | File_hash_diff -> "file-hash-diff"  *)
     (* | Cmis_cached -> "cmis-cached" *)
     | No_cache -> "no-cache"
+
+  let description = function
+    | Buffer_typed -> "Buffer is typed"
+    (* | File_hash_diff -> "Buffer is typed; file contents changed but AST did not" *)
+    (* | Cmis_cached -> "Buffer is not typed; cmis are cached" *)
+    | No_cache -> "Buffer is not typed; cmis are not cached"
 
   let uses_server cache =
     match cache with
@@ -37,7 +43,7 @@ end
 type t = {
   id : int;
   path : Path.t;
-  cache : Cache.t;
+  cache_workflow : Cache_workflow.t;
   version : Yojson.Safe.t;
   comment : string option;
 }
@@ -47,10 +53,10 @@ let pp ppf merlin =
   Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t merlin))
 
 let get_id m = m.id
-let is_server merlin = Cache.uses_server merlin.cache
+let is_server merlin = Cache_workflow.uses_server merlin.cache_workflow
 
-let basic_cmd ppf { path; cache; _ } =
-  Format.fprintf ppf "%s" (Cache.print path cache)
+let basic_cmd ppf { path; cache_workflow; _ } =
+  Format.fprintf ppf "%s" (Cache_workflow.print path cache_workflow)
 
 let untimed_query_generic ~f cmd =
   let ic = Unix.open_process_in cmd in
@@ -80,10 +86,12 @@ let untimed_query_str cmd =
   let f = input_line in
   untimed_query_generic ~f cmd
 
-let make id ?comment path cache =
-  let cmd = Printf.sprintf "%s -version" (Cache.print path cache) in
+let make id ?comment path cache_workflow =
+  let cmd =
+    Printf.sprintf "%s -version" (Cache_workflow.print path cache_workflow)
+  in
   let version = `String (untimed_query_str cmd) in
-  { id; path; cache; version; comment }
+  { id; path; cache_workflow; version; comment }
 
 module Query_type = struct
   type t =
@@ -249,7 +257,7 @@ module Cmd = struct
                File.pp file File.pp file
     in
     let cmd =
-      match merlin.cache with
+      match merlin.cache_workflow with
       (* | Cache.File_hash_diff -> *)
       (* TODO: clean up afterwards! *)
       (* Format.asprintf "echo '' >> %a && %s" File.pp file query_cmd *)

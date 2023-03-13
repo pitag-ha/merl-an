@@ -47,12 +47,15 @@ let cache_workflows =
   let e =
     Arg.enum
     @@ List.map
-         (fun qt -> (Merl_an.Merlin.Cache.to_string qt, qt))
-         Merl_an.Merlin.Cache.all
+         (fun qt -> (Merl_an.Merlin.Cache_workflow.to_string qt, qt))
+         Merl_an.Merlin.Cache_workflow.all
   in
   named
     (fun x -> `Cache x)
-    Arg.(value & opt (list e) Merl_an.Merlin.Cache.all & info [ "cache" ] ~doc)
+    Arg.(
+      value
+      & opt (list e) Merl_an.Merlin.Cache_workflow.all
+      & info [ "cache" ] ~doc)
 
 let sample_size =
   (* FIXME: Make that a relative numer: relative to the size of the file. *)
