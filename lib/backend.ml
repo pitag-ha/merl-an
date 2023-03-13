@@ -22,9 +22,7 @@ module type Data_tables = sig
   val persist_logs : log:Logs.t -> t -> unit
   val dump : dump_dir:Fpath.t -> t -> unit
   val all_files : unit -> Fpath.t list
-
-  val wrap_up :
-    t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> query_time:float -> unit
+  val wrap_up : t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> unit
 end
 
 module Field = struct
@@ -82,7 +80,8 @@ module Query_response = struct
 end
 
 module Command = struct
-  type t = { sample_id : int; cmd : Merlin.Cmd.t } [@@deriving yojson_of]
+  type t = { sample_id : int; cmd : Merlin.Cmd.t; merlin_id : int }
+  [@@deriving yojson_of]
 
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
@@ -192,10 +191,11 @@ module Performance = struct
       }
     in
     let resp =
-      let responses = responses in
+      (* TODO: make a cli-argument out of this instead of doing this always *)
+      let responses = List.map Merlin.Response.crop_value responses in
       { Query_response.sample_id = id; responses; merlin_id }
     in
-    let cmd = { Command.sample_id = id; cmd } in
+    let cmd = { Command.sample_id = id; cmd; merlin_id } in
     tables.performances <- perf :: tables.performances;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
@@ -215,8 +215,7 @@ module Performance = struct
     type t = {
       date : string option;
       proj : string list;
-      total_time : float;
-      query_time : float;
+      total_time : float; (* query_time : float; *)
     }
     [@@deriving yojson_of]
 
@@ -230,7 +229,7 @@ module Performance = struct
       let (year, month, day), _ = Ptime.to_date_time epoch in
       Printf.sprintf "%i/%i/%i" day month year
 
-    let produce_and_dump ~dump_dir ~proj_paths ~query_time =
+    let produce_and_dump ~dump_dir ~proj_paths =
       let metadata =
         let total_time = Sys.time () in
         let date = Some (get_date ()) in
@@ -238,7 +237,7 @@ module Performance = struct
           date;
           proj = List.map Fpath.to_string proj_paths;
           total_time;
-          query_time;
+          (* query_time; *)
         }
       in
       let file_path = Fpath.(to_string @@ append dump_dir file_name) in
@@ -250,9 +249,9 @@ module Performance = struct
           Format.fprintf ppf "%a" pp metadata)
   end
 
-  let wrap_up _t ~dump_dir ~proj_paths ~query_time =
+  let wrap_up _t ~dump_dir ~proj_paths =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
-    Metadata.produce_and_dump ~dump_dir ~proj_paths ~query_time
+    Metadata.produce_and_dump ~dump_dir ~proj_paths
 
   let all_files () =
     let f = Field.to_filename in
@@ -284,7 +283,7 @@ module Regression = struct
       let responses = List.map Merlin.Response.crop_timing responses in
       { Query_response.sample_id = id; responses; merlin_id }
     in
-    let cmd = { Command.sample_id = id; cmd } in
+    let cmd = { Command.sample_id = id; cmd; merlin_id } in
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
@@ -293,7 +292,7 @@ module Regression = struct
   let create_initial _merlins =
     { query_responses = []; commands = []; logs = [] }
 
-  let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~query_time:_ =
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
     ()
 

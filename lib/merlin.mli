@@ -1,12 +1,13 @@
 open! Import
 
 module Cache : sig
-  (** Kind of [ocamlmerlin] cache workflow to be used when running
-      [ocamlmerlin]. [Hot] corresponds to using the server frontend and a 100%
-      initialized cache; [Warm] corresponds to using the server frontend and a
-      partily initialized cache; [Freezing] corresponds to using the single
-      frontend. *)
-  type t = (*Hot |*) Warm | Freezing
+  (** Kind of [ocamlmerlin] cache population to be simulated when running
+      [ocamlmerlin]. *)
+  type t =
+    | Buffer_typed (* Buffer is typed. *)
+    (* | File_hash_diff (* Buffer is typed; file hash has changed but same AST. *) *)
+    (* | Cmis_cached (* Cmis are cached; buffer isn't typed. *) *)
+    | No_cache
 
   val yojson_of_t : t -> Yojson.Safe.t
   val to_string : t -> string
@@ -34,7 +35,14 @@ val is_server : t -> bool
 
 module Query_type : sig
   (** The [ocamlmerlin] queries that this tool can create analysis data for *)
-  type t = Locate | Case_analysis | Type_enclosing | Occurrences
+  type t =
+    | Case_analysis
+    | Type_enclosing
+    | Occurrences
+    | Complete_prefix
+    | Expand_prefix
+    | Locate
+    | Errors
 
   val yojson_of_t : t -> Yojson.Safe.t
   val to_string : t -> string
@@ -42,6 +50,10 @@ module Query_type : sig
   val all : t list
   (** Returns a list of all [ocamlmerlin] queries that this tool creates
       benchmark data for*)
+
+  val is_global : t -> bool
+  (** Returns [true] if the query is run globally on a file; returns [false], if
+      it needs a location speficied. *)
 
   (** The AST node types that can serve as target for (s)ome of the query types
       in [t] *)
@@ -71,6 +83,10 @@ module Response : sig
   val crop_timing : t -> t
   (** Removes the timing field from the merlin responce. Usefule when you want
       pure data, e.g. for regression testing. *)
+
+  val crop_value : t -> t
+  (** Removes the value field from the merlin response, i.e. the actual response
+      to the query. *)
 end
 
 module Cmd : sig
@@ -83,25 +99,27 @@ module Cmd : sig
   val yojson_of_t : t -> Yojson.Safe.t
 
   val make :
-    query_type:Query_type.t -> file:File.t -> loc:Location.t -> merlin -> t
+    query_type:Query_type.t ->
+    file:File.t ->
+    ?li:Longident.t ->
+    ?loc:Location.t ->
+    merlin ->
+    (t, Logs.t) Result.t
   (** [make ~query_type ~file ~loc merlin] creates a concrete [ocamlmerlin]
       command by providing the following: the query [query_type]; the target of
       the query, i.e. the source code [file] and the location [loc] inside that
       file; and a [Merlin.t] value [merlin] *)
 
-  val run : query_time:float -> repeats:int -> t -> Response.t list * float
-  (** [run ~query_time ~repeats cmd] runs the concrete [ocamlmerlin] command
-      [cmd]. It runs that command [repeat] times in a row and returns the
-      [repeats] responses together with the updated [query_time] (where
-      [query_time] is the time spent so far on all [ocamlmerlin] queries) *)
+  val run : repeats:int -> t -> (Response.t list, Logs.t) Result.t
+  (** [run ~repeats cmd] runs the concrete [ocamlmerlin] command [cmd]. It runs
+      that command [repeat] times in a row and returns the [repeats] responses *)
 end
 with type merlin := t
 
-val init_cache : query_time:float -> File.t -> t -> (float, Logs.t) Result.t
+val init_cache : File.t -> t -> (unit, Logs.t) Result.t
 (** [init_cache file merlin] inits the [merlin] cache on [file]. This should be
     called if one of the frontends is [Server]. It inits the cache by running a
-    global command on the file. In case of success, it returns the updated
-    [query_time]. *)
+    global command on the file. *)
 
 val stop_server : t -> unit
 (** Stops the [ocamlmerlin] server. This should be called at the end of the

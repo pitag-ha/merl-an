@@ -1,5 +1,6 @@
 open! Import
 
+(* FIXME: make a type out of this tuple. for that, refactor the samples-reservoir interaction. *)
 type sample = { id : int; sample : Location.t * Ppxlib.Longident.t option }
 
 type t = {
@@ -75,8 +76,7 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~merlins ~query_time ~repeats ~update { samples; file; query_type }
-    =
+let analyze ~merlins ~repeats ~update { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
     Error
@@ -85,29 +85,27 @@ let analyze ~merlins ~query_time ~repeats ~update { samples; file; query_type }
             (Yojson.Safe.to_string @@ File.yojson_of_t file)
             (Merlin.Query_type.to_string query_type)))
   else
-    let* query_time =
+    let* () =
       match List.find_opt Merlin.is_server merlins with
-      | Some merlin -> Merlin.init_cache ~query_time file merlin
-      | None -> Ok query_time
+      | Some merlin -> Merlin.init_cache file merlin
+      | None -> Ok ()
     in
-    let traverse_samples ~merlin ~query_time samples =
-      let rec loop ~query_time samples =
+    let traverse_samples ~merlin samples =
+      let rec loop samples =
         match samples with
-        | [] -> query_time
-        | { id; sample = loc, _ } :: rest ->
-            let cmd = Merlin.Cmd.make ~query_type ~file ~loc merlin in
-            let responses, query_time =
-              Merlin.Cmd.run ~query_time ~repeats cmd
-            in
+        | [] -> Ok ()
+        | { id; sample = loc, li } :: rest ->
+            let* cmd = Merlin.Cmd.make ~query_type ~file ?li ~loc merlin in
+            let* responses = Merlin.Cmd.run ~repeats cmd in
             let merlin_id = Merlin.get_id merlin in
             update { Data.id; responses; cmd; file; loc; query_type; merlin_id };
-            loop ~query_time rest
+            loop rest
       in
-      loop ~query_time samples
+      loop samples
     in
-    let qt =
-      List.fold_left
-        (fun acc merlin -> acc +. traverse_samples ~merlin ~query_time samples)
-        query_time merlins
-    in
-    Ok qt
+    List.fold_left
+      (fun acc merlin ->
+        (* FIXME: this only captures the first error in case of multiple errors *)
+        let* () = acc in
+        traverse_samples ~merlin samples)
+      (Ok ()) merlins

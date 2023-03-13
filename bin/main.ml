@@ -11,35 +11,18 @@ let man =
        dumped into json-line files.";
   ]
 
-let analyze
-      ~backend
-      (`Repeats repeats)
-      (`Cache cache_workflows)
-      (`Merlin merlin_path)
-      (`Proj_dirs proj_dirs)
-      (`Dir_name data_dir)
-      (`Sample_size sample_size)
-      (`Query_types query_types)
-      (`Extensions extensions)
-  =
+let analyze ~backend (`Repeats repeats) (`Cache cache_workflows)
+    (`Merlin merlin_path) (`Proj_dirs proj_dirs) (`Dir_name data_dir)
+    (`Sample_size sample_size) (`Query_types query_types)
+    (`Extensions extensions) =
   match
-    Merl_an.Workflows.analyze
-        ~backend
-        (`Repeats repeats)
-        (`Cache cache_workflows)
-        (`Merlin merlin_path)
-        (`Proj_dirs proj_dirs)
-        (`Dir_name data_dir)
-        (`Sample_size sample_size)
-        (`Query_types query_types)
-        (`Extensions extensions)
+    Merl_an.Workflows.analyze ~backend ~repeats ~cache_workflows ~merlin_path
+      ~proj_dirs ~data_dir ~sample_size ~query_types ~extensions
   with
   | Ok () -> ()
   | Error (`Msg err) ->
-    Printf.eprintf "%s" err;
-    exit 50
-;;
-
+      Printf.eprintf "%s" err;
+      exit 50
 
 let performance_term =
   let backend =
@@ -69,7 +52,7 @@ let regression =
     Term.(
       const
         (analyze ~backend (`Repeats 1)
-           (`Cache [ Merl_an.Merlin.Cache.Warm ]))
+           (`Cache [ Merl_an.Merlin.Cache.Buffer_typed ]))
       $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
       $ Args.query_types $ Args.extensions)
   in

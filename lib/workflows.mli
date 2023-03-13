@@ -2,12 +2,12 @@ open! Import
 
 val analyze :
   backend:(module Backend.Data_tables) ->
-  [< `Repeats of int ] ->
-  [< `Cache of Merlin.Cache.t list ] ->
-  [< `Merlin of string ] ->
-  [< `Proj_dirs of string list ] ->
-  [< `Dir_name of string option ] ->
-  [< `Sample_size of int ] ->
-  [< `Query_types of Merlin.Query_type.t list ] ->
-  [< `Extensions of string list ] ->
+  repeats:int ->
+  cache_workflows:Merlin.Cache.t list ->
+  merlin_path:string ->
+  proj_dirs:string list ->
+  data_dir:string option ->
+  sample_size:int ->
+  query_types:Merlin.Query_type.t list ->
+  extensions:string list ->
   (unit, Rresult.R.msg) Result.t

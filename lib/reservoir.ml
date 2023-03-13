@@ -59,8 +59,12 @@ let update ~random_state smth input =
     let random_index = Random.State.int random_state smth.desired_size in
     let () = smth.reservoir.(random_index) <- input in
     let r () = Random.State.float random_state 1.0 in
-    let new_i = smth.state.i + int_of_float (log (r ()) /. log (1. -. smth.state.w)) + 1 in
-    let new_w = smth.state.w *. exp (log (r ()) /. float_of_int smth.desired_size) in
+    let new_i =
+      smth.state.i + int_of_float (log (r ()) /. log (1. -. smth.state.w)) + 1
+    in
+    let new_w =
+      smth.state.w *. exp (log (r ()) /. float_of_int smth.desired_size)
+    in
     let new_state = { i = new_i; w = new_w } in
     let () = smth.state <- new_state in
     smth.update_index <- smth.update_index + 1
@@ -70,4 +74,5 @@ let nth n r = r.(n)
 
 let get_samples ~make_sample ~id_counter smth =
   let size = Int.min smth.desired_size smth.update_index in
-  List.init size (fun i -> make_sample ~id:(i + id_counter) (nth i smth.reservoir))
+  List.init size (fun i ->
+      make_sample ~id:(i + id_counter) (nth i smth.reservoir))

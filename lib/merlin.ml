@@ -1,22 +1,31 @@
 open! Import
 
 module Cache = struct
-  type t = (* | Hot *)
-    | Warm | Freezing [@@deriving yojson_of, enumerate]
+  type t =
+    | Buffer_typed
+    (* | File_hash_diff  *)
+    (* | Cmis_cached  *)
+    | No_cache
+  [@@deriving yojson_of, enumerate]
 
   let to_string = function
-    (* | Hot -> "hot" *)
-    | Warm -> "warm"
-    | Freezing -> "freezing"
+    | Buffer_typed -> "buffer-typed"
+    (* | File_hash_diff -> "file-hash-diff"  *)
+    (* | Cmis_cached -> "cmis-cached" *)
+    | No_cache -> "no-cache"
 
   let uses_server cache =
-    match cache with (* | Hot *)
-    | Warm -> true | Freezing -> false
+    match cache with
+    (* | Cmis_cached  *)
+    (* | File_hash_diff  *)
+    | Buffer_typed -> true
+    | No_cache -> false
 
   let print path = function
-    (*| Hot*)
-    | Warm -> Format.sprintf "%s server" (Fpath.to_string path)
-    | Freezing -> Format.sprintf "%s single" (Fpath.to_string path)
+    (* | Cmis_cached  *)
+    (* | File_hash_diff *)
+    | Buffer_typed -> Format.sprintf "%s server" (Fpath.to_string path)
+    | No_cache -> Format.sprintf "%s single" (Fpath.to_string path)
 end
 
 module Path = struct
@@ -28,7 +37,7 @@ end
 type t = {
   id : int;
   path : Path.t;
-  frontend : Cache.t;
+  cache : Cache.t;
   version : Yojson.Safe.t;
   comment : string option;
 }
@@ -38,10 +47,10 @@ let pp ppf merlin =
   Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t merlin))
 
 let get_id m = m.id
-let is_server merlin = Cache.uses_server merlin.frontend
+let is_server merlin = Cache.uses_server merlin.cache
 
-let basic_cmd ppf { path; frontend; _ } =
-  Format.fprintf ppf "%s" (Cache.print path frontend)
+let basic_cmd ppf { path; cache; _ } =
+  Format.fprintf ppf "%s" (Cache.print path cache)
 
 let untimed_query_generic ~f cmd =
   let ic = Unix.open_process_in cmd in
@@ -74,11 +83,17 @@ let untimed_query_str cmd =
 let make id ?comment path cache =
   let cmd = Printf.sprintf "%s -version" (Cache.print path cache) in
   let version = `String (untimed_query_str cmd) in
-  { id; path; frontend = cache; version; comment }
+  { id; path; cache; version; comment }
 
 module Query_type = struct
-  (* TODO: also add [complete-prefix] command. that's a little more complex than the other commands since, aside location and file name, it also requires a prefix of the identifier as input. *)
-  type t = Locate | Case_analysis | Type_enclosing | Occurrences
+  type t =
+    | Case_analysis
+    | Type_enclosing
+    | Occurrences
+    | Complete_prefix
+    | Expand_prefix
+    | Locate
+    | Errors
   [@@deriving yojson_of, enumerate]
 
   let to_string = function
@@ -86,6 +101,9 @@ module Query_type = struct
     | Case_analysis -> "case-analysis"
     | Type_enclosing -> "type-enclosing"
     | Occurrences -> "occurrences"
+    | Complete_prefix -> "complete-prefix"
+    | Expand_prefix -> "expand-prefix"
+    | Errors -> "errors"
 
   type node =
     | Longident
@@ -96,6 +114,12 @@ module Query_type = struct
     | Module_type_decl
   [@@deriving yojson]
 
+  let is_global = function
+    | Locate | Case_analysis | Type_enclosing | Occurrences | Complete_prefix
+    | Expand_prefix ->
+        false
+    | Errors -> true
+
   let has_target qt target =
     let target_nodes =
       match qt with
@@ -104,6 +128,11 @@ module Query_type = struct
       | Type_enclosing ->
           [ Expression; Module_expr; Module_decl; Module_type_decl ]
       | Occurrences -> [ Longident ]
+      | Complete_prefix -> [ Longident ]
+      | Expand_prefix -> [ Longident ]
+      | Errors ->
+          (* ToDo: this could by type-safer!! *)
+          []
     in
     List.mem target target_nodes
 end
@@ -126,9 +155,18 @@ module Response = struct
   let crop_timing = function
     | `Assoc answer -> `Assoc (List.remove_assoc "timing" answer)
     | _ ->
+        (* Fixme *)
         failwith
           "Error while cropping merlin response: reponse should have a key \
            called timing."
+
+  let crop_value = function
+    | `Assoc answer -> `Assoc (List.remove_assoc "value" answer)
+    | _ ->
+        (* Fixme *)
+        failwith
+          "Error while cropping merlin response: reponse should have a key \
+           called value."
 end
 
 module Cmd = struct
@@ -136,59 +174,120 @@ module Cmd = struct
 
   let yojson_of_t cmd = `String cmd
 
-  let make ~query_type ~file ~loc merlin =
-    match query_type with
-    | Query_type.Locate ->
-        Format.asprintf
-          " %a %s -look-for ml -position '%a' -index 0 -filename %a < %a"
-          basic_cmd merlin
-          (Query_type.to_string query_type)
-          (Location.print_edge Right)
-          loc File.pp file File.pp file
-    | Case_analysis ->
-        Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a"
-          basic_cmd merlin
-          (Query_type.to_string query_type)
-          (Location.print_edge Left) loc
-          (Location.print_edge Right)
-          loc File.pp file File.pp file
-    | Type_enclosing ->
-        Format.asprintf "%a %s -position '%a' -filename %a < %a" basic_cmd
-          merlin
-          (Query_type.to_string query_type)
-          (Location.print_edge Right)
-          loc File.pp file File.pp file
-    | Occurrences ->
-        Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a" basic_cmd
-          merlin
-          (Query_type.to_string query_type)
-          (Location.print_edge Right)
-          loc File.pp file File.pp file
+  (* FIXME: instead of having loc optional, it would be nice to have a logic containing: if query_type is local, there's a loc; if it's global, there's none *)
+  let make ~query_type ~file ?li ?loc merlin =
+    let retrieve_loc ~query_type = function
+      | Some loc -> Ok loc
+      | None ->
+          Error
+            (Logs.Error
+               (Format.sprintf "Didn't receive a location for %s"
+                  (Query_type.to_string query_type)))
+    in
+    let open Result.Syntax in
+    let* query_cmd =
+      match query_type with
+      | Query_type.Locate ->
+          let* loc = retrieve_loc ~query_type loc in
+          Result.ok
+          @@ Format.asprintf
+               " %a %s -look-for ml -position '%a' -index 0 -filename %a < %a"
+               basic_cmd merlin
+               (Query_type.to_string query_type)
+               (Location.print_edge Right)
+               loc File.pp file File.pp file
+      | Case_analysis ->
+          let* loc = retrieve_loc ~query_type loc in
+          Result.ok
+          @@ Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a"
+               basic_cmd merlin
+               (Query_type.to_string query_type)
+               (Location.print_edge Left) loc
+               (Location.print_edge Right)
+               loc File.pp file File.pp file
+      | Type_enclosing ->
+          let* loc = retrieve_loc ~query_type loc in
+          Result.ok
+          @@ Format.asprintf "%a %s -position '%a' -filename %a < %a" basic_cmd
+               merlin
+               (Query_type.to_string query_type)
+               (Location.print_edge Right)
+               loc File.pp file File.pp file
+      | Occurrences ->
+          let* loc = retrieve_loc ~query_type loc in
+          Result.ok
+          @@ Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a"
+               basic_cmd merlin
+               (Query_type.to_string query_type)
+               (Location.print_edge Right)
+               loc File.pp file File.pp file
+      | Complete_prefix | Expand_prefix -> (
+          (* TODO: for expand-prefix, it might be interesting to modify the source code to introduce an error *)
+          match li with
+          | Some li ->
+              let* loc = retrieve_loc ~query_type loc in
+              let first_half s = String.(sub s 0 ((length s / 2) + 1)) in
+              Result.ok
+              @@ Format.asprintf
+                   "%a %s -prefix %s -position '%a' -filename %a < %a" basic_cmd
+                   merlin
+                   (Query_type.to_string query_type)
+                   (first_half @@ Longident.name li)
+                   (Location.print_edge Right)
+                   loc File.pp file File.pp file
+          | None ->
+              Error
+                (Logs.Error
+                   (Format.sprintf
+                      "The sampling workflow didn't collect info about the \
+                       longident for %s"
+                      (Query_type.to_string query_type))))
+      | Errors ->
+          Result.ok
+          @@ Format.asprintf "%a %s -filename %a < %a" basic_cmd merlin
+               (Query_type.to_string query_type)
+               File.pp file File.pp file
+    in
+    let cmd =
+      match merlin.cache with
+      (* | Cache.File_hash_diff -> *)
+      (* TODO: clean up afterwards! *)
+      (* Format.asprintf "echo '' >> %a && %s" File.pp file query_cmd *)
+      (* | Cmis_cached ->  *)
+      (* Format.asprintf "sed -i '1s/^/let () = ()\n/' %a " File.pp file *)
+      (* Format.asprintf "echo -e 'let () = ()\n$(cat %a)' > %a " File.pp file File.pp file *)
+
+      (* query_cmd FIXME!!! *)
+      | Buffer_typed | No_cache -> query_cmd
+    in
+    Result.ok cmd
 
   let some_global_cmd file merlin =
     Format.asprintf "%a errors -filename %a < %a" basic_cmd merlin File.pp file
       File.pp file
 
-  let run_once ~query_time cmd =
-    let start_time = Sys.time () in
+  let run_once cmd =
+    (* FIXME: it would be better to catch the exception here. *)
     let repl = untimed_query_json cmd in
-    (repl, query_time +. Sys.time () -. start_time)
+    repl
 
-  let run ~query_time ~repeats cmd =
-    let rec loop ~query_time responses = function
-      | 0 -> (responses, query_time)
-      | n ->
-          let new_resp, query_time = run_once ~query_time cmd in
-          loop ~query_time (new_resp :: responses) (n - 1)
-    in
-    loop ~query_time [] repeats
+  let run ~repeats cmd =
+    try
+      let rec loop responses = function
+        | 0 -> responses
+        | n ->
+            let new_resp = run_once cmd in
+            loop (new_resp :: responses) (n - 1)
+      in
+      Ok (loop [] repeats)
+    with exc -> Error (Logs.Error (Printexc.to_string exc))
 end
 
-let init_cache ~query_time file merlin =
+let init_cache file merlin =
   let cmd = Cmd.some_global_cmd file merlin in
   try
-    let _, query_time = Cmd.run_once ~query_time cmd in
-    Ok query_time
+    let _ = Cmd.run_once cmd in
+    Ok ()
   with exc -> Error (Logs.Error (Printexc.to_string exc))
 
 let stop_server { path; _ } =
