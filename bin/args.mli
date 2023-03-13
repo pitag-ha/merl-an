@@ -1,4 +1,3 @@
-open! Merl_an.Import
 open Cmdliner
 
 val merlin : [> `Merlin of string ] Term.t

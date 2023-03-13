@@ -1,4 +1,3 @@
-open! Merl_an.Import
 open Cmdliner
 
 let named f = Term.(app (const f))
