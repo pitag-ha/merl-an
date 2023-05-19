@@ -1,6 +1,6 @@
 open! Import
 
-type kind = Perf | Regr
+type kind = Perf | Regr | Bench
 
 module type Data_tables = sig
   type t
@@ -81,6 +81,26 @@ end
 
 module Command = struct
   type t = { sample_id : int; cmd : Merlin.Cmd.t; merlin_id : int }
+  [@@deriving yojson_of]
+
+  let pp ppf data =
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
+end
+
+module Benchmark_result = struct
+  type t = {
+    name : string;
+    (* TODO: different values *)
+    value : int;
+    units : string;
+    description : string;
+    trend : string option;
+  }
+  [@@deriving yojson_of]
+end
+
+module Benchmark_summary = struct
+  type t = { name : string; mutable results : Benchmark_result.t list }
   [@@deriving yojson_of]
 
   let pp ppf data =
@@ -299,4 +319,82 @@ module Regression = struct
   let all_files () =
     let f = Field.to_filename in
     Fields.to_list ~query_responses:f ~commands:f ~logs:f
+end
+
+module Benchmark = struct
+  type t = {
+    mutable bench : Benchmark_summary.t list; (* TODO: rewrite to single, not list *)
+    mutable query_responses : Query_response.t list;
+    mutable commands : Command.t list;
+    mutable logs : Logs.t list;
+    merlins : Merlin.t list;
+  }
+  [@@deriving fields]
+
+  let kind = Bench
+
+  let create_initial merlins =
+    {
+      bench = [ { name = "Merlin benchmark"; results = [] } ] ;
+      query_responses = [];
+      commands = [];
+      logs = [];
+      merlins;
+    }
+
+  let persist_logs ~log tables = tables.logs <- log :: tables.logs
+
+  let all_files () =
+    let f = Field.to_filename in
+    Fields.to_list ~bench:f ~query_responses:f ~commands:f ~logs:f ~merlins:f
+        let dump ~dump_dir t =
+    let d = dump_dir in
+    let () =
+      Fields.iter
+        ~bench:(Field.dump Benchmark_summary.pp d t)
+        ~query_responses:(Field.dump Query_response.pp d t)
+        ~commands:(Field.dump Command.pp d t)
+        ~logs:(Field.dump Logs.pp d t)
+        ~merlins:(Field.dump Merlin.pp d t)
+    in
+    ()
+
+    let update_analysis_data ~id ~responses ~cmd ~file ~loc:(_loc : Import.location) ~merlin_id ~query_type
+      tables =
+    let max_timing, _timings, responses =
+      (* FIXME: add json struture to the two lists *)
+      let rec loop ~max_timing ~responses ~timings = function
+        | [] -> (max_timing, timings, responses)
+        | resp :: rest ->
+            let timing = Merlin.Response.get_timing resp in
+            let timings = timing :: timings in
+            let responses = resp :: responses in
+            let max_timing = Int.max timing max_timing in
+            loop ~max_timing ~timings ~responses rest
+      in
+      loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
+    in
+    let bench_res =
+      {
+        Benchmark_result.name = File.filename file;
+        value = max_timing;
+        units = "todo";
+        description =Merlin.Query_type.to_string query_type;
+        trend = None;
+      }
+    in
+    let resp =
+      (* TODO: make a cli-argument out of this instead of doing this always *)
+      let responses = List.map Merlin.Response.crop_value responses in
+      { Query_response.sample_id = id; responses; merlin_id }
+    in
+    let cmd = { Command.sample_id = id; cmd; merlin_id } in
+    let res = List.hd tables.bench in (* TODO: hack *)
+    res.results <- bench_res :: res.results ;
+    tables.query_responses <- resp :: tables.query_responses;
+    tables.commands <- cmd :: tables.commands
+
+    let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
+    (* TODO: check whether there's data left in memory and, if so, dump it *)
+    ()
 end
