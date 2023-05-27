@@ -87,7 +87,7 @@ module Command = struct
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
-module Benchmark_result = struct
+module Benchmark_metric = struct
   type t = {
     name : string;
     (* TODO: different values *)
@@ -95,6 +95,14 @@ module Benchmark_result = struct
     units : string;
     description : string;
     trend : string option;
+  }
+  [@@deriving yojson_of]
+end
+
+module Benchmark_result = struct
+  type t = {
+    name: string;
+    mutable metrics: Benchmark_metric.t list
   }
   [@@deriving yojson_of]
 end
@@ -335,7 +343,7 @@ module Benchmark = struct
 
   let create_initial merlins =
     {
-      bench = [ { name = "Merlin benchmark"; results = [] } ] ;
+      bench = [ { name = "Merlin benchmark"; results = [ { name = "result"; metrics = []}] } ] ;
       query_responses = [];
       commands = [];
       logs = [];
@@ -374,9 +382,9 @@ module Benchmark = struct
       in
       loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
     in
-    let bench_res =
+    let bench_metric =
       {
-        Benchmark_result.name = File.filename file;
+        Benchmark_metric.name = File.filename file;
         value = max_timing;
         units = "todo";
         description =Merlin.Query_type.to_string query_type;
@@ -389,8 +397,8 @@ module Benchmark = struct
       { Query_response.sample_id = id; responses; merlin_id }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    let res = List.hd tables.bench in (* TODO: hack *)
-    res.results <- bench_res :: res.results ;
+    let result = List.hd (List.hd tables.bench).results in (* TODO: hack *)
+    result.metrics <- bench_metric :: result.metrics ;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
