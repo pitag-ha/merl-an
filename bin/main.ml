@@ -69,8 +69,28 @@ let regression =
   in
   Cmd.v info regression_term
 
+let benchmark =
+  let backend =
+    (module Merl_an.Backend.Benchmark : Merl_an.Backend.Data_tables)
+  in
+  let regression_term =
+    Term.(
+      const
+        (analyze ~backend (`Repeats 1)
+           (`Cache [ Merl_an.Merlin.Cache_workflow.Buffer_typed ]))
+      $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
+      $ Args.query_types $ Args.extensions)
+  in
+  let info =
+    let doc =
+      "TODO"
+    in
+    Cmd.info "benchmark" ~doc ~man
+  in
+  Cmd.v info regression_term
+
 let main =
   Cmd.group ~default:performance_term (Cmd.info "merl-an" ~man)
-    [ performance; regression ]
+    [ performance; regression; benchmark ]
 
 let () = exit (Cmd.eval main)
