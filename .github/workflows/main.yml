@@ -37,5 +37,8 @@ jobs:
       - name: Run build
         run: opam exec -- dune build
 
+      - name: Install merlin
+        run: opam install merlin
+
       - name: Run tests
         run: opam exec -- dune test
