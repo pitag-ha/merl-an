@@ -25,7 +25,6 @@
   dune
   ppxlib
   yojson
-  unix
   fpath
   bos
   cmdliner
