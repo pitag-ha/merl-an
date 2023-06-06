@@ -43,7 +43,7 @@ jobs:
       - name: Run tests
         run: opam exec -- dune test
 
-lint-fmt:
+  lint-fmt:
     strategy:
       matrix:
         ocaml-compiler:
