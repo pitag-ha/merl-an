@@ -14,13 +14,13 @@ depends: [
   "dune" {>= "3.2"}
   "ppxlib"
   "yojson"
-  "unix"
   "fpath"
   "bos"
   "cmdliner"
   "ppx_deriving_yojson"
   "ppx_enumerate"
   "ppx_fields_conv"
+  "ppx_yojson_conv"
   "ptime"
   "odoc" {with-doc}
 ]

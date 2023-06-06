@@ -1,0 +1,44 @@
+name: Build and Test
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build-and-test:
+    name: Build and Test
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        ocaml-compiler:
+          - 4.14.x
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          dune-cache: ${{ matrix.os == 'ubuntu-latest' }}
+
+      - name: Install opam packages
+        run: opam install --deps-only .
+
+      - name: Run build
+        run: opam exec -- dune build
+
+      - name: Install merlin
+        run: opam install merlin
+
+      - name: Run tests
+        run: opam exec -- dune test

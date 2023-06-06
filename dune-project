@@ -2,6 +2,7 @@
 
 (name merl-an)
 
+(cram enable)
 (generate_opam_files true)
 
 (source
@@ -24,13 +25,13 @@
   dune
   ppxlib
   yojson
-  unix
   fpath
   bos
   cmdliner
   ppx_deriving_yojson
   ppx_enumerate
   ppx_fields_conv
+  ppx_yojson_conv
   ptime)
  (tags
   (topics "to describe" your project)))
