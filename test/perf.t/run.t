@@ -13,14 +13,13 @@
   {"sample_id":0,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Case_analysis"],"loc":"x"}
 
   $ cat test-data/commands.json |
-  > jq -c '.filename |= "x"
-  > | .cmd |= sub("-filename.*"; "-filename")'
-  {"sample_id":6,"cmd":"ocamlmerlin single errors -filename","merlin_id":1,"filename":"x"}
-  {"sample_id":6,"cmd":"ocamlmerlin server errors -filename","merlin_id":0,"filename":"x"}
-  {"sample_id":1,"cmd":"ocamlmerlin single type-enclosing -position '1:8' -filename","merlin_id":1,"filename":"x"}
-  {"sample_id":1,"cmd":"ocamlmerlin server type-enclosing -position '1:8' -filename","merlin_id":0,"filename":"x"}
-  {"sample_id":0,"cmd":"ocamlmerlin single case-analysis -start '1:8' -end '1:8' -filename","merlin_id":1,"filename":"x"}
-  {"sample_id":0,"cmd":"ocamlmerlin server case-analysis -start '1:8' -end '1:8' -filename","merlin_id":0,"filename":"x"}
+  > jq -c '.cmd |= sub("-filename.*"; "-filename")'
+  {"sample_id":6,"cmd":"ocamlmerlin single errors -filename","merlin_id":1}
+  {"sample_id":6,"cmd":"ocamlmerlin server errors -filename","merlin_id":0}
+  {"sample_id":1,"cmd":"ocamlmerlin single type-enclosing -position '1:8' -filename","merlin_id":1}
+  {"sample_id":1,"cmd":"ocamlmerlin server type-enclosing -position '1:8' -filename","merlin_id":0}
+  {"sample_id":0,"cmd":"ocamlmerlin single case-analysis -start '1:8' -end '1:8' -filename","merlin_id":1}
+  {"sample_id":0,"cmd":"ocamlmerlin server case-analysis -start '1:8' -end '1:8' -filename","merlin_id":0}
 
   $ cat test-data/query_responses.json |
   > jq -c '.responses |= map (.timing |=
