@@ -100,10 +100,7 @@ module Benchmark_metric = struct
 end
 
 module Benchmark_result = struct
-  type t = {
-    name: string;
-    mutable metrics: Benchmark_metric.t list
-  }
+  type t = { name : string; mutable metrics : Benchmark_metric.t list }
   [@@deriving yojson_of]
 end
 
@@ -331,7 +328,8 @@ end
 
 module Benchmark = struct
   type t = {
-    mutable bench : Benchmark_summary.t list; (* TODO: rewrite to single, not list *)
+    mutable bench : Benchmark_summary.t list;
+        (* TODO: rewrite to single, not list *)
     mutable query_responses : Query_response.t list;
     mutable commands : Command.t list;
     mutable logs : Logs.t list;
@@ -343,7 +341,13 @@ module Benchmark = struct
 
   let create_initial merlins =
     {
-      bench = [ { name = "Merlin benchmark"; results = [ { name = "result"; metrics = []}] } ] ;
+      bench =
+        [
+          {
+            name = "Merlin benchmark";
+            results = [ { name = "result"; metrics = [] } ];
+          };
+        ];
       query_responses = [];
       commands = [];
       logs = [];
@@ -355,20 +359,20 @@ module Benchmark = struct
   let all_files () =
     let f = Field.to_filename in
     Fields.to_list ~bench:f ~query_responses:f ~commands:f ~logs:f ~merlins:f
-        let dump ~dump_dir t =
+
+  let dump ~dump_dir t =
     let d = dump_dir in
     let () =
       Fields.iter
         ~bench:(Field.dump Benchmark_summary.pp d t)
         ~query_responses:(Field.dump Query_response.pp d t)
         ~commands:(Field.dump Command.pp d t)
-        ~logs:(Field.dump Logs.pp d t)
-        ~merlins:(Field.dump Merlin.pp d t)
+        ~logs:(Field.dump Logs.pp d t) ~merlins:(Field.dump Merlin.pp d t)
     in
     ()
 
-    let update_analysis_data ~id ~responses ~cmd ~file ~loc:(_loc : Import.location) ~merlin_id ~query_type
-      tables =
+  let update_analysis_data ~id ~responses ~cmd ~file
+      ~loc:(_loc : Import.location) ~merlin_id ~query_type tables =
     let max_timing, _timings, responses =
       (* FIXME: add json struture to the two lists *)
       let rec loop ~max_timing ~responses ~timings = function
@@ -387,7 +391,7 @@ module Benchmark = struct
         Benchmark_metric.name = File.filename file;
         value = max_timing;
         units = "todo";
-        description =Merlin.Query_type.to_string query_type;
+        description = Merlin.Query_type.to_string query_type;
         trend = None;
       }
     in
@@ -397,12 +401,13 @@ module Benchmark = struct
       { Query_response.sample_id = id; responses; merlin_id }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    let result = List.hd (List.hd tables.bench).results in (* TODO: hack *)
-    result.metrics <- bench_metric :: result.metrics ;
+    let result = List.hd (List.hd tables.bench).results in
+    (* TODO: hack *)
+    result.metrics <- bench_metric :: result.metrics;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
-    let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
     ()
 end

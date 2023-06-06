@@ -82,9 +82,7 @@ let benchmark =
       $ Args.query_types $ Args.extensions)
   in
   let info =
-    let doc =
-      "TODO"
-    in
+    let doc = "TODO" in
     Cmd.info "benchmark" ~doc ~man
   in
   Cmd.v info regression_term
