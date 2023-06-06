@@ -26,10 +26,11 @@
   > sed 's/"cpu":[0-9]*,/"cpu":x,/' |
   > sed 's/"query":[0-9]*,/"query":x,/' |
   > sed 's/"reader":[0-9]*,/"reader":x,/' |
-  > sed 's/"typer":[0-9]*,/"typer":x,/'
-  {"sample_id":6,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":0}}],"merlin_id":1}
-  {"sample_id":6,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":0}}],"merlin_id":0}
-  {"sample_id":1,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":0}}],"merlin_id":1}
-  {"sample_id":1,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":0}}],"merlin_id":0}
-  {"sample_id":0,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":0}}],"merlin_id":1}
-  {"sample_id":0,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":0}}],"merlin_id":0}
+  > sed 's/"typer":[0-9]*,/"typer":x,/' |
+  > sed 's/"error":[0-9]*/"error":x/'
+  {"sample_id":6,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":x}}],"merlin_id":1}
+  {"sample_id":6,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":x}}],"merlin_id":0}
+  {"sample_id":1,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":x}}],"merlin_id":1}
+  {"sample_id":1,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":x}}],"merlin_id":0}
+  {"sample_id":0,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":x}}],"merlin_id":1}
+  {"sample_id":0,"responses":[{"class":"return","notifications":[],"timing":{"clock":x,"cpu":x,"query":x,"pp":0,"reader":x,"ppx":0,"typer":x,"error":x}}],"merlin_id":0}
