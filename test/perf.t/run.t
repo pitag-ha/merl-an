@@ -4,13 +4,13 @@
   > jq -c '.timings |= 0
   > | .max_timing |= 0
   > | .file |= "x"
-  > | .loc |= "x"'
-  {"sample_id":6,"timings":0,"max_timing":0,"file":"x","merlin_id":1,"query_type":["Errors"],"loc":"x"}
-  {"sample_id":6,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Errors"],"loc":"x"}
-  {"sample_id":1,"timings":0,"max_timing":0,"file":"x","merlin_id":1,"query_type":["Type_enclosing"],"loc":"x"}
-  {"sample_id":1,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Type_enclosing"],"loc":"x"}
-  {"sample_id":0,"timings":0,"max_timing":0,"file":"x","merlin_id":1,"query_type":["Case_analysis"],"loc":"x"}
-  {"sample_id":0,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Case_analysis"],"loc":"x"}
+  > | .loc |= sub("File.*/test/perf.t/perf.ml\",";"")'
+  {"sample_id":6,"timings":0,"max_timing":0,"file":"x","merlin_id":1,"query_type":["Errors"],"loc":"File \"_none_\", line 1, characters -1--1:"}
+  {"sample_id":6,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Errors"],"loc":"File \"_none_\", line 1, characters -1--1:"}
+  {"sample_id":1,"timings":0,"max_timing":0,"file":"x","merlin_id":1,"query_type":["Type_enclosing"],"loc":" line 1, characters 8-9:"}
+  {"sample_id":1,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Type_enclosing"],"loc":" line 1, characters 8-9:"}
+  {"sample_id":0,"timings":0,"max_timing":0,"file":"x","merlin_id":1,"query_type":["Case_analysis"],"loc":" line 1, characters 8-9:"}
+  {"sample_id":0,"timings":0,"max_timing":0,"file":"x","merlin_id":0,"query_type":["Case_analysis"],"loc":" line 1, characters 8-9:"}
 
   $ cat test-data/commands.json |
   > jq -c '.cmd |= sub("-filename.*"; "-filename")'
