@@ -2,6 +2,7 @@
 
 (name merl-an)
 
+(cram enable)
 (generate_opam_files true)
 
 (source
