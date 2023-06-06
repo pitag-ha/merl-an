@@ -42,3 +42,27 @@ jobs:
 
       - name: Run tests
         run: opam exec -- dune test
+
+  lint-fmt:
+    strategy:
+      matrix:
+        ocaml-compiler:
+          - 4.14.x
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          dune-cache: true
+
+      - name: Install ocamlformat
+        run: opam install ocamlformat=$(awk -F = '/^version=/{print $2}' .ocamlformat)
+
+      - name: dune fmt
+        run: opam exec -- dune fmt
