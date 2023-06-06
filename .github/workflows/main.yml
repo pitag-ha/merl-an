@@ -61,4 +61,7 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
 
+      - name: Install ocamlformat
+        run: opam install ocamlformat
+
       - run: opam exec -- dune build @fmt
