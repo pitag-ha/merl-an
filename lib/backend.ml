@@ -101,32 +101,69 @@ end
 module Benchmark_metric = struct
   type t = {
     name : string;
-    value : int;
+    mutable value : int list;
     units : string;
     description : string;
     trend : string option;
   }
   [@@deriving yojson_of]
+
+  (* TODO: Why do I need this function? *)
+  let value { value; _ } = value
 end
 
 module StringMap = Map.Make (String)
 
-module Benchmark_summary = struct
-  type t = {
-    name : string;
-    mutable results : Benchmark_metric.t list StringMap.t;
-  }
+module Benchmark_result = struct
+  type t = { name : string; mutable metrics : Benchmark_metric.t StringMap.t }
 
-  type t1 = { name : string; results : Benchmark_metric.t list list }
+  let update (result : t) metric =
+    let f x =
+      match x with
+      | Some (me : Benchmark_metric.t) ->
+          Some
+            {
+              me with
+              value = List.append (Benchmark_metric.value metric) me.value;
+            }
+      | None -> Some metric
+    in
+    { result with metrics = StringMap.update metric.name f result.metrics }
+
+  let create name (metric : Benchmark_metric.t) =
+    { name; metrics = StringMap.add metric.name metric StringMap.empty }
+
+  (* Hack *)
+  type t1 = { name : string; metrics : Benchmark_metric.t list }
+  [@@deriving yojson_of]
+
+  let convert ({ name; metrics } : t) =
+    { name; metrics = StringMap.bindings metrics |> List.map snd }
+end
+
+module Benchmark_summary = struct
+  type t = { name : string; mutable results : Benchmark_result.t StringMap.t }
+
+  (* Hack *)
+  type t1 = { name : string; results : Benchmark_result.t1 list }
   [@@deriving yojson_of]
 
   let pp ppf data =
     let convert ({ name; results } : t) =
-      { name; results = StringMap.bindings results |> List.map snd }
+      {
+        name;
+        results =
+          StringMap.bindings results |> List.map snd
+          |> List.map Benchmark_result.convert;
+      }
     in
-
     Format.fprintf ppf "%s%!"
       (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
+  (*
+    let update name result =
+      let f = function
+      | Some x ->  
+*)
 end
 
 (* module Files = struct
@@ -381,7 +418,7 @@ module Benchmark = struct
     in
     ()
 
-  let update_analysis_data ~id ~responses ~cmd ~file:(_file : File.t)
+  let update_analysis_data ~id ~responses ~cmd ~file
       ~loc:(_loc : Import.location) ~merlin_id ~query_type tables =
     let max_timing, _timings, responses =
       (* FIXME: add json struture to the two lists *)
@@ -396,26 +433,27 @@ module Benchmark = struct
       in
       loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
     in
-    let bench_metric =
-      {
-        Benchmark_metric.name = Merlin.Query_type.to_string query_type;
-        value = max_timing;
-        units = "ms";
-        description = Int.to_string id;
-        trend = None;
-      }
-    in
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses = List.map Merlin.Response.crop_value responses in
       { Query_response.sample_id = id; responses; merlin_id }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    let upd = function
-      | Some x -> Some (bench_metric :: x)
-      | None -> Some [ bench_metric ]
+    let filename = Fpath.filename (Fpath.v (File.filename file)) in
+    let metric =
+      {
+        Benchmark_metric.name = Merlin.Query_type.to_string query_type;
+        value = [ max_timing ];
+        units = "ms";
+        description = "";
+        trend = None;
+      }
     in
-    let result = StringMap.update bench_metric.name upd tables.bench.results in
+    let upd = function
+      | Some x -> Some (Benchmark_result.update x metric)
+      | None -> Some (Benchmark_result.create filename metric)
+    in
+    let result = StringMap.update filename upd tables.bench.results in
     tables.bench.results <- result;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
