@@ -34,6 +34,17 @@ module Field = struct
     let field_name = Fieldslib.Field.name field in
     Fpath.(add_ext ".json" @@ v field_name)
 
+  let dump_single pp dump_dir tables field =
+    let table_content = Fieldslib.Field.get field tables in
+    let file_name = to_filename field in
+    let file_path = Fpath.(to_string @@ append dump_dir file_name) in
+    let oc = open_out file_path in
+    Fun.protect
+      ~finally:(fun () -> close_out_noerr oc)
+      (fun () ->
+        let ppf = Format.formatter_of_out_channel oc in
+        pp ppf table_content)
+
   let dump pp dump_dir tables field =
     let write_json_lines ~pp ~ppf l =
       Format.pp_print_list ~pp_sep:Format.pp_print_newline pp ppf l
@@ -90,7 +101,6 @@ end
 module Benchmark_metric = struct
   type t = {
     name : string;
-    (* TODO: different values *)
     value : int;
     units : string;
     description : string;
@@ -99,17 +109,24 @@ module Benchmark_metric = struct
   [@@deriving yojson_of]
 end
 
-module Benchmark_result = struct
-  type t = { name : string; mutable metrics : Benchmark_metric.t list }
-  [@@deriving yojson_of]
-end
+module StringMap = Map.Make (String)
 
 module Benchmark_summary = struct
-  type t = { name : string; mutable results : Benchmark_result.t list }
+  type t = {
+    name : string;
+    mutable results : Benchmark_metric.t list StringMap.t;
+  }
+
+  type t1 = { name : string; results : Benchmark_metric.t list list }
   [@@deriving yojson_of]
 
   let pp ppf data =
-    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
+    let convert ({ name; results } : t) =
+      { name; results = StringMap.bindings results |> List.map snd }
+    in
+
+    Format.fprintf ppf "%s%!"
+      (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
 end
 
 (* module Files = struct
@@ -328,8 +345,7 @@ end
 
 module Benchmark = struct
   type t = {
-    mutable bench : Benchmark_summary.t list;
-        (* TODO: rewrite to single, not list *)
+    mutable bench : Benchmark_summary.t;
     mutable query_responses : Query_response.t list;
     mutable commands : Command.t list;
     mutable logs : Logs.t list;
@@ -341,13 +357,7 @@ module Benchmark = struct
 
   let create_initial merlins =
     {
-      bench =
-        [
-          {
-            name = "Merlin benchmark";
-            results = [ { name = "result"; metrics = [] } ];
-          };
-        ];
+      bench = { name = "Merlin benchmark"; results = StringMap.empty };
       query_responses = [];
       commands = [];
       logs = [];
@@ -364,14 +374,14 @@ module Benchmark = struct
     let d = dump_dir in
     let () =
       Fields.iter
-        ~bench:(Field.dump Benchmark_summary.pp d t)
+        ~bench:(Field.dump_single Benchmark_summary.pp d t)
         ~query_responses:(Field.dump Query_response.pp d t)
         ~commands:(Field.dump Command.pp d t)
         ~logs:(Field.dump Logs.pp d t) ~merlins:(Field.dump Merlin.pp d t)
     in
     ()
 
-  let update_analysis_data ~id ~responses ~cmd ~file
+  let update_analysis_data ~id ~responses ~cmd ~file:(_file : File.t)
       ~loc:(_loc : Import.location) ~merlin_id ~query_type tables =
     let max_timing, _timings, responses =
       (* FIXME: add json struture to the two lists *)
@@ -388,10 +398,10 @@ module Benchmark = struct
     in
     let bench_metric =
       {
-        Benchmark_metric.name = File.filename file;
+        Benchmark_metric.name = Merlin.Query_type.to_string query_type;
         value = max_timing;
-        units = "todo";
-        description = Merlin.Query_type.to_string query_type;
+        units = "ms";
+        description = Int.to_string id;
         trend = None;
       }
     in
@@ -401,9 +411,12 @@ module Benchmark = struct
       { Query_response.sample_id = id; responses; merlin_id }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    let result = List.hd (List.hd tables.bench).results in
-    (* TODO: hack *)
-    result.metrics <- bench_metric :: result.metrics;
+    let upd = function
+      | Some x -> Some (bench_metric :: x)
+      | None -> Some [ bench_metric ]
+    in
+    let result = StringMap.update bench_metric.name upd tables.bench.results in
+    tables.bench.results <- result;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
