@@ -154,7 +154,7 @@
   $ cat test-data/bench.json |
   > jq '.results |= map( .metrics |= map(.value |= map(0)))' |
   > cb-check
-  Correctly parsed following benchmarks:
+  Correctly parsed some benchmarks:
   {
     "name": "Merlin benchmark",
     "results": [
