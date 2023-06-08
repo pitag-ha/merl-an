@@ -38,7 +38,7 @@ jobs:
         run: opam exec -- dune build
 
       - name: Install merlin
-        run: opam pin -y merlin https://github.com/3Rafal/merlin.git#concurrent-server-start
+        run: opam pin -y --update-invariant merlin https://github.com/3Rafal/merlin.git#concurrent-server-start
 
       - name: Install cb-check
         run: opam pin -y cb-check https://github.com/ocurrent/current-bench.git
