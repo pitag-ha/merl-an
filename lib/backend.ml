@@ -107,9 +107,6 @@ module Benchmark_metric = struct
     trend : string option;
   }
   [@@deriving yojson_of]
-
-  (* TODO: Why do I need this function? *)
-  let value { value; _ } = value
 end
 
 module StringMap = Map.Make (String)
@@ -117,15 +114,11 @@ module StringMap = Map.Make (String)
 module Benchmark_result = struct
   type t = { name : string; mutable metrics : Benchmark_metric.t StringMap.t }
 
-  let update (result : t) metric =
+  let update (result : t) (metric : Benchmark_metric.t) =
     let f x =
       match x with
       | Some (me : Benchmark_metric.t) ->
-          Some
-            {
-              me with
-              value = List.append (Benchmark_metric.value metric) me.value;
-            }
+          Some { me with value = List.append metric.value me.value }
       | None -> Some metric
     in
     { result with metrics = StringMap.update metric.name f result.metrics }
@@ -133,7 +126,7 @@ module Benchmark_result = struct
   let create name (metric : Benchmark_metric.t) =
     { name; metrics = StringMap.add metric.name metric StringMap.empty }
 
-  (* Hack *)
+  (* TODO: Figure out a way to remove intermediate type *)
   type t1 = { name : string; metrics : Benchmark_metric.t list }
   [@@deriving yojson_of]
 
@@ -144,7 +137,7 @@ end
 module Benchmark_summary = struct
   type t = { name : string; mutable results : Benchmark_result.t StringMap.t }
 
-  (* Hack *)
+  (* TODO: Figure out a way to remove intermediate type *)
   type t1 = { name : string; results : Benchmark_result.t1 list }
   [@@deriving yojson_of]
 
@@ -159,11 +152,6 @@ module Benchmark_summary = struct
     in
     Format.fprintf ppf "%s%!"
       (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
-  (*
-    let update name result =
-      let f = function
-      | Some x ->  
-*)
 end
 
 (* module Files = struct
@@ -458,7 +446,5 @@ module Benchmark = struct
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
-  let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
-    (* TODO: check whether there's data left in memory and, if so, dump it *)
-    ()
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ = ()
 end
