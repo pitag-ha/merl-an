@@ -1,2 +1,8 @@
 (cram
+ (applies_to :whole_subtree)
+ ; Workaround until https://github.com/ocaml/merlin/pull/1622 is released
+ ; Tests are executed sequentially to avoid race conditions
+ (locks merlin_tests))
+
+(cram
  (deps %{bin:merl-an}))
