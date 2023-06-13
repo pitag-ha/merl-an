@@ -1,6 +1,6 @@
 open! Import
 
-type kind = Perf | Regr
+type kind = Perf | Regr | Bench
 
 module type Data_tables = sig
   type t
@@ -33,6 +33,17 @@ module Field = struct
   let to_filename field =
     let field_name = Fieldslib.Field.name field in
     Fpath.(add_ext ".json" @@ v field_name)
+
+  let dump_single pp dump_dir tables field =
+    let table_content = Fieldslib.Field.get field tables in
+    let file_name = to_filename field in
+    let file_path = Fpath.(to_string @@ append dump_dir file_name) in
+    let oc = open_out file_path in
+    Fun.protect
+      ~finally:(fun () -> close_out_noerr oc)
+      (fun () ->
+        let ppf = Format.formatter_of_out_channel oc in
+        pp ppf table_content)
 
   let dump pp dump_dir tables field =
     let write_json_lines ~pp ~ppf l =
@@ -85,6 +96,62 @@ module Command = struct
 
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
+end
+
+module Benchmark_metric = struct
+  type t = {
+    name : string;
+    mutable value : int list;
+    units : string;
+    description : string;
+    trend : string option;
+  }
+  [@@deriving yojson_of]
+end
+
+module StringMap = Map.Make (String)
+
+module Benchmark_result = struct
+  type t = { name : string; mutable metrics : Benchmark_metric.t StringMap.t }
+
+  let update (result : t) (metric : Benchmark_metric.t) =
+    let f x =
+      match x with
+      | Some (me : Benchmark_metric.t) ->
+          Some { me with value = List.append metric.value me.value }
+      | None -> Some metric
+    in
+    { result with metrics = StringMap.update metric.name f result.metrics }
+
+  let create name (metric : Benchmark_metric.t) =
+    { name; metrics = StringMap.add metric.name metric StringMap.empty }
+
+  (* TODO: Figure out a way to remove intermediate type *)
+  type t1 = { name : string; metrics : Benchmark_metric.t list }
+  [@@deriving yojson_of]
+
+  let convert ({ name; metrics } : t) =
+    { name; metrics = StringMap.bindings metrics |> List.map snd }
+end
+
+module Benchmark_summary = struct
+  type t = { name : string; mutable results : Benchmark_result.t StringMap.t }
+
+  (* TODO: Figure out a way to remove intermediate type *)
+  type t1 = { name : string; results : Benchmark_result.t1 list }
+  [@@deriving yojson_of]
+
+  let pp ppf data =
+    let convert ({ name; results } : t) =
+      {
+        name;
+        results =
+          StringMap.bindings results |> List.map snd
+          |> List.map Benchmark_result.convert;
+      }
+    in
+    Format.fprintf ppf "%s%!"
+      (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
 end
 
 (* module Files = struct
@@ -299,4 +366,85 @@ module Regression = struct
   let all_files () =
     let f = Field.to_filename in
     Fields.to_list ~query_responses:f ~commands:f ~logs:f
+end
+
+module Benchmark = struct
+  type t = {
+    mutable bench : Benchmark_summary.t;
+    mutable query_responses : Query_response.t list;
+    mutable commands : Command.t list;
+    mutable logs : Logs.t list;
+    merlins : Merlin.t list;
+  }
+  [@@deriving fields]
+
+  let kind = Bench
+
+  let create_initial merlins =
+    {
+      bench = { name = "Merlin benchmark"; results = StringMap.empty };
+      query_responses = [];
+      commands = [];
+      logs = [];
+      merlins;
+    }
+
+  let persist_logs ~log tables = tables.logs <- log :: tables.logs
+
+  let all_files () =
+    let f = Field.to_filename in
+    Fields.to_list ~bench:f ~query_responses:f ~commands:f ~logs:f ~merlins:f
+
+  let dump ~dump_dir t =
+    let d = dump_dir in
+    let () =
+      Fields.iter
+        ~bench:(Field.dump_single Benchmark_summary.pp d t)
+        ~query_responses:(Field.dump Query_response.pp d t)
+        ~commands:(Field.dump Command.pp d t)
+        ~logs:(Field.dump Logs.pp d t) ~merlins:(Field.dump Merlin.pp d t)
+    in
+    ()
+
+  let update_analysis_data ~id ~responses ~cmd ~file
+      ~loc:(_loc : Import.location) ~merlin_id ~query_type tables =
+    let max_timing, _timings, responses =
+      (* FIXME: add json struture to the two lists *)
+      let rec loop ~max_timing ~responses ~timings = function
+        | [] -> (max_timing, timings, responses)
+        | resp :: rest ->
+            let timing = Merlin.Response.get_timing resp in
+            let timings = timing :: timings in
+            let responses = resp :: responses in
+            let max_timing = Int.max timing max_timing in
+            loop ~max_timing ~timings ~responses rest
+      in
+      loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
+    in
+    let resp =
+      (* TODO: make a cli-argument out of this instead of doing this always *)
+      let responses = List.map Merlin.Response.crop_value responses in
+      { Query_response.sample_id = id; responses; merlin_id }
+    in
+    let cmd = { Command.sample_id = id; cmd; merlin_id } in
+    let filename = Fpath.filename (Fpath.v (File.filename file)) in
+    let metric =
+      {
+        Benchmark_metric.name = Merlin.Query_type.to_string query_type;
+        value = [ max_timing ];
+        units = "ms";
+        description = "";
+        trend = None;
+      }
+    in
+    let upd = function
+      | Some x -> Some (Benchmark_result.update x metric)
+      | None -> Some (Benchmark_result.create filename metric)
+    in
+    let result = StringMap.update filename upd tables.bench.results in
+    tables.bench.results <- result;
+    tables.query_responses <- resp :: tables.query_responses;
+    tables.commands <- cmd :: tables.commands
+
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ = ()
 end

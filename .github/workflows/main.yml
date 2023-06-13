@@ -40,6 +40,9 @@ jobs:
       - name: Install merlin
         run: opam install merlin
 
+      - name: Install cb-check
+        run: opam pin -y cb-check https://github.com/ocurrent/current-bench.git
+
       - name: Run tests
         run: opam exec -- dune test
 
