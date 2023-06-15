@@ -406,7 +406,7 @@ module Benchmark = struct
     in
     ()
 
-  let update_analysis_data ~id ~responses ~cmd ~file
+  let update_analysis_data ~id ~responses ~cmd ~file:_file
       ~loc:(_loc : Import.location) ~merlin_id ~query_type tables =
     let max_timing, _timings, responses =
       (* FIXME: add json struture to the two lists *)
@@ -427,7 +427,6 @@ module Benchmark = struct
       { Query_response.sample_id = id; responses; merlin_id }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    let filename = Fpath.filename (Fpath.v (File.filename file)) in
     let metric =
       {
         Benchmark_metric.name = Merlin.Query_type.to_string query_type;
@@ -437,11 +436,21 @@ module Benchmark = struct
         trend = None;
       }
     in
+    (* TODO: Pass it instead of hardcoding *)
+    let cache_workflow = Merlin.Cache_workflow.Buffer_typed in
     let upd = function
       | Some x -> Some (Benchmark_result.update x metric)
-      | None -> Some (Benchmark_result.create filename metric)
+      | None ->
+          Some
+            (Benchmark_result.create
+               (Merlin.Cache_workflow.to_string cache_workflow)
+               metric)
     in
-    let result = StringMap.update filename upd tables.bench.results in
+    let result =
+      StringMap.update
+        (Merlin.Cache_workflow.to_string cache_workflow)
+        upd tables.bench.results
+    in
     tables.bench.results <- result;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
