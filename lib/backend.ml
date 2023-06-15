@@ -99,11 +99,7 @@ module Command = struct
 end
 
 module Benchmark_metric = struct
-  type t = {
-    name : string;
-    mutable value : int list;
-    units : string;
-  }
+  type t = { name : string; mutable value : int list; units : string }
   [@@deriving yojson_of]
 end
 
