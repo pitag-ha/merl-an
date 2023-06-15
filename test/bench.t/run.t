@@ -5,11 +5,13 @@
     "name": "Merlin benchmark",
     "results": [
       {
-        "name": "bench.ml",
+        "name": "buffer-typed",
         "metrics": [
           {
             "name": "case-analysis",
             "value": [
+              0,
+              0,
               0,
               0
             ],
@@ -21,6 +23,7 @@
             "name": "complete-prefix",
             "value": [
               0,
+              0,
               0
             ],
             "units": "ms",
@@ -30,6 +33,7 @@
           {
             "name": "errors",
             "value": [
+              0,
               0
             ],
             "units": "ms",
@@ -39,6 +43,7 @@
           {
             "name": "expand-prefix",
             "value": [
+              0,
               0,
               0
             ],
@@ -50,6 +55,7 @@
             "name": "locate",
             "value": [
               0,
+              0,
               0
             ],
             "units": "ms",
@@ -59,6 +65,7 @@
           {
             "name": "occurrences",
             "value": [
+              0,
               0,
               0
             ],
@@ -70,75 +77,7 @@
             "name": "type-enclosing",
             "value": [
               0,
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          }
-        ]
-      },
-      {
-        "name": "bench1.ml",
-        "metrics": [
-          {
-            "name": "case-analysis",
-            "value": [
               0,
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          },
-          {
-            "name": "complete-prefix",
-            "value": [
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          },
-          {
-            "name": "errors",
-            "value": [
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          },
-          {
-            "name": "expand-prefix",
-            "value": [
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          },
-          {
-            "name": "locate",
-            "value": [
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          },
-          {
-            "name": "occurrences",
-            "value": [
-              0
-            ],
-            "units": "ms",
-            "description": "",
-            "trend": null
-          },
-          {
-            "name": "type-enclosing",
-            "value": [
               0,
               0
             ],
@@ -159,12 +98,12 @@
     "name": "Merlin benchmark",
     "results": [
       {
-        "name": "bench.ml",
+        "name": "buffer-typed",
         "metrics": [
           {
             "name": "case-analysis",
             "description": "",
-            "value": [ 0.0, 0.0 ],
+            "value": [ 0.0, 0.0, 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
@@ -172,7 +111,7 @@
           {
             "name": "complete-prefix",
             "description": "",
-            "value": [ 0.0, 0.0 ],
+            "value": [ 0.0, 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
@@ -180,7 +119,7 @@
           {
             "name": "errors",
             "description": "",
-            "value": [ 0.0 ],
+            "value": [ 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
@@ -188,7 +127,7 @@
           {
             "name": "expand-prefix",
             "description": "",
-            "value": [ 0.0, 0.0 ],
+            "value": [ 0.0, 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
@@ -196,7 +135,7 @@
           {
             "name": "locate",
             "description": "",
-            "value": [ 0.0, 0.0 ],
+            "value": [ 0.0, 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
@@ -204,7 +143,7 @@
           {
             "name": "occurrences",
             "description": "",
-            "value": [ 0.0, 0.0 ],
+            "value": [ 0.0, 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
@@ -212,68 +151,7 @@
           {
             "name": "type-enclosing",
             "description": "",
-            "value": [ 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          }
-        ]
-      },
-      {
-        "name": "bench1.ml",
-        "metrics": [
-          {
-            "name": "case-analysis",
-            "description": "",
-            "value": [ 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "complete-prefix",
-            "description": "",
-            "value": [ 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "errors",
-            "description": "",
-            "value": [ 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "expand-prefix",
-            "description": "",
-            "value": [ 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "locate",
-            "description": "",
-            "value": [ 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "occurrences",
-            "description": "",
-            "value": [ 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "type-enclosing",
-            "description": "",
-            "value": [ 0.0, 0.0 ],
+            "value": [ 0.0, 0.0, 0.0, 0.0 ],
             "units": "ms",
             "trend": "",
             "lines": []
