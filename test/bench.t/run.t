@@ -15,9 +15,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           },
           {
             "name": "complete-prefix",
@@ -26,9 +24,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           },
           {
             "name": "errors",
@@ -36,9 +32,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           },
           {
             "name": "expand-prefix",
@@ -47,9 +41,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           },
           {
             "name": "locate",
@@ -58,9 +50,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           },
           {
             "name": "occurrences",
@@ -69,9 +59,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           },
           {
             "name": "type-enclosing",
@@ -81,9 +69,7 @@
               0,
               0
             ],
-            "units": "ms",
-            "description": "",
-            "trend": null
+            "units": "ms"
           }
         ]
       }

@@ -103,8 +103,6 @@ module Benchmark_metric = struct
     name : string;
     mutable value : int list;
     units : string;
-    description : string;
-    trend : string option;
   }
   [@@deriving yojson_of]
 end
@@ -432,8 +430,6 @@ module Benchmark = struct
         Benchmark_metric.name = Merlin.Query_type.to_string query_type;
         value = [ max_timing ];
         units = "ms";
-        description = "";
-        trend = None;
       }
     in
     (* TODO: Pass it instead of hardcoding *)
