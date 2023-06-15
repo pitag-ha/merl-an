@@ -31,7 +31,7 @@
   ppx_deriving_yojson
   ppx_enumerate
   ppx_fields_conv
-  ppx_yojson_conv
+  (ppx_yojson_conv (<= 0.15.1))
   ptime)
  (tags
   (topics "to describe" your project)))
