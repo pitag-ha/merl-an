@@ -440,9 +440,17 @@ module Benchmark = struct
     let cache_workflow = Merlin.Cache_workflow.Buffer_typed in
     let upd = function
       | Some x -> Some (Benchmark_result.update x metric)
-      | None -> Some (Benchmark_result.create (Merlin.Cache_workflow.to_string cache_workflow)   metric)
+      | None ->
+          Some
+            (Benchmark_result.create
+               (Merlin.Cache_workflow.to_string cache_workflow)
+               metric)
     in
-    let result = StringMap.update (Merlin.Cache_workflow.to_string cache_workflow) upd tables.bench.results in
+    let result =
+      StringMap.update
+        (Merlin.Cache_workflow.to_string cache_workflow)
+        upd tables.bench.results
+    in
     tables.bench.results <- result;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
