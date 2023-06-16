@@ -6,20 +6,18 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github pitag-ha/merl-an))
 
-(authors "Author Name")
+(authors "Sonja Heinze" "Rafał Gwoździński")
 
-(maintainers "Maintainer Name")
+(maintainers "Sonja Heinze")
 
-(license LICENSE)
-
-(documentation https://url/to/documentation)
+(license MIT)
 
 (package
  (name merl-an)
- (synopsis "Generates data to analyze merlin")
- (description "A longer description")
+ (synopsis "Tool for merlin performance analysis")
+ (description "Merl-an generates queries to test merlin performance, executes them and gathers the results.")
  (depends
   ocaml
   dune
@@ -32,8 +30,4 @@
   ppx_enumerate
   ppx_fields_conv
   (ppx_yojson_conv (<= v0.15.1))
-  ptime)
- (tags
-  (topics "to describe" your project)))
-
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
+  ptime))
