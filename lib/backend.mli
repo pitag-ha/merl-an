@@ -48,5 +48,4 @@ module Regression : Data_tables
 (** The backend for testing possible end-to-end [merlin] regressions. *)
 
 module Error_regression : Data_tables
-
 module Benchmark : Data_tables

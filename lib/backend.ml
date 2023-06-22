@@ -149,11 +149,7 @@ module Benchmark_summary = struct
 end
 
 module Error_regression_result = struct
-  type t = {
-    sample_id : int;
-    merlin_id : int;
-    success : bool;
-  }
+  type t = { sample_id : int; merlin_id : int; success : bool }
   [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
@@ -403,9 +399,7 @@ module Error_regression = struct
     tables.commands <- cmd :: tables.commands
 
   let persist_logs ~log tables = tables.logs <- log :: tables.logs
-
-  let create_initial _merlins =
-    { results = []; commands = []; logs = [] }
+  let create_initial _merlins = { results = []; commands = []; logs = [] }
 
   let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
@@ -415,7 +409,6 @@ module Error_regression = struct
     let f = Field.to_filename in
     Fields.to_list ~results:f ~commands:f ~logs:f
 end
-
 
 module Benchmark = struct
   type t = {
