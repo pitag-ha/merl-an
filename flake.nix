@@ -2,12 +2,27 @@
   description = "merl-an Nix Flake";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
+  inputs.cb-repository = {
+    url = "github:ocurrent/current-bench";
+    flake = false;
+  };
 
-  outputs = { self, nixpkgs, flake-utils }:
+
+  outputs = { self, nixpkgs, flake-utils, cb-repository }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs.ocamlPackages) buildDunePackage;
+        cb-check = buildDunePackage {
+          pname = "cb-check";
+          src = cb-repository;
+          version = "n/a";
+          duneVersion = "3";
+          buildInputs = with pkgs.ocamlPackages; [
+            ocaml
+            yojson
+          ];
+        };
       in
         rec {
           packages = rec {
@@ -40,7 +55,11 @@
           };
           devShells.default = pkgs.mkShell {
             inputsFrom = pkgs.lib.attrValues packages;
-            buildInputs = with pkgs.ocamlPackages; [ merlin ];
+            buildInputs = with pkgs.ocamlPackages; [
+              pkgs.ocamlformat_0_24_1
+              merlin
+              cb-check
+            ];
           };
         });
 }
