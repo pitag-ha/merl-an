@@ -46,7 +46,7 @@ let performance =
 
 let regression =
   let backend =
-    (module Merl_an.Backend.Regression : Merl_an.Backend.Data_tables)
+    (module Merl_an.Backend.Error_regression : Merl_an.Backend.Data_tables)
   in
   let regression_term =
     Term.(
@@ -62,10 +62,9 @@ let regression =
        The data is pure in the sense that if you run the command twice with \
        the same input, the created data will be the same. To produce pure \
        data, the [timing] component of the merlin response is being cropped. \
-       This command is useful for end-to-end regression analyzis of the \
-       ocamlmerlin responses. "
+       This command reports successful queries"
     in
-    Cmd.info "regression" ~doc ~man
+    Cmd.info "error-regression" ~doc ~man
   in
   Cmd.v info regression_term
 

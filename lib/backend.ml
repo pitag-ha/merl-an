@@ -1,6 +1,6 @@
 open! Import
 
-type kind = Perf | Regr | Bench
+type kind = Perf | Regr | Error_regr | Bench
 
 module type Data_tables = sig
   type t
@@ -146,6 +146,19 @@ module Benchmark_summary = struct
     in
     Format.fprintf ppf "%s%!"
       (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
+end
+
+module Error_regression_result = struct
+  type t = {
+    sample_id : int;
+    merlin_id : int;
+    success : bool;
+  }
+  [@@deriving yojson_of]
+
+  (* FIXME: print the sample repeats in a separate json field *)
+  let pp ppf data =
+    Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
 end
 
 (* module Files = struct
@@ -361,6 +374,48 @@ module Regression = struct
     let f = Field.to_filename in
     Fields.to_list ~query_responses:f ~commands:f ~logs:f
 end
+
+module Error_regression = struct
+  type t = {
+    mutable results : Error_regression_result.t list;
+    mutable commands : Command.t list;
+    mutable logs : Logs.t list;
+  }
+  [@@deriving fields]
+
+  let kind = Error_regr
+
+  let dump ~dump_dir t =
+    let d = dump_dir in
+    Fields.iter
+      ~results:(Field.dump Error_regression_result.pp d t)
+      ~commands:(Field.dump Command.pp d t)
+      ~logs:(Field.dump Logs.pp d t)
+
+  let update_analysis_data ~id ~responses ~cmd ~file:_ ~loc:_ ~merlin_id
+      ~query_type:_ tables =
+    let resp =
+      let success = List.for_all Merlin.Response.is_successful responses in
+      { Error_regression_result.sample_id = id; success; merlin_id }
+    in
+    let cmd = { Command.sample_id = id; cmd; merlin_id } in
+    tables.results <- resp :: tables.results;
+    tables.commands <- cmd :: tables.commands
+
+  let persist_logs ~log tables = tables.logs <- log :: tables.logs
+
+  let create_initial _merlins =
+    { results = []; commands = []; logs = [] }
+
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
+    (* TODO: check whether there's data left in memory and, if so, dump it *)
+    ()
+
+  let all_files () =
+    let f = Field.to_filename in
+    Fields.to_list ~results:f ~commands:f ~logs:f
+end
+
 
 module Benchmark = struct
   type t = {
