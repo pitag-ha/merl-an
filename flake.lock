@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "cb-repository": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1687169636,
+        "narHash": "sha256-lbZXo9SytFG1QsWgC7SlPI5SkFYNjjLkIC1kz6lfdJg=",
+        "owner": "ocurrent",
+        "repo": "current-bench",
+        "rev": "2f7a94900ea3aa74b15de95356e33f4f5ffe0f16",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ocurrent",
+        "repo": "current-bench",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -35,6 +51,7 @@
     },
     "root": {
       "inputs": {
+        "cb-repository": "cb-repository",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
       }
