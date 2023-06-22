@@ -1,7 +1,7 @@
 open! Import
 
 (** The different kinds of data backends that are supported. *)
-type kind = Perf | Regr | Bench
+type kind = Perf | Regr | Error_regr | Bench
 
 module type Data_tables = sig
   type t
@@ -47,4 +47,5 @@ module Performance : Data_tables
 module Regression : Data_tables
 (** The backend for testing possible end-to-end [merlin] regressions. *)
 
+module Error_regression : Data_tables
 module Benchmark : Data_tables

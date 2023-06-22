@@ -88,6 +88,8 @@ module Response : sig
   val crop_value : t -> t
   (** Removes the value field from the merlin response, i.e. the actual response
       to the query. *)
+
+  val is_successful : t -> bool
 end
 
 module Cmd : sig

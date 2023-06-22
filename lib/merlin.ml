@@ -175,6 +175,16 @@ module Response = struct
         failwith
           "Error while cropping merlin response: reponse should have a key \
            called value."
+
+  let is_successful = function
+    | `Assoc answer -> (
+        match List.assoc "timing" answer with
+        | `Assoc timing -> (
+            match List.assoc "clock" timing with
+            | `Int _time -> true
+            | _ -> false)
+        | _ -> false)
+    | _ -> false
 end
 
 module Cmd = struct
