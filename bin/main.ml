@@ -46,6 +46,31 @@ let performance =
 
 let regression =
   let backend =
+    (module Merl_an.Backend.Regression : Merl_an.Backend.Data_tables)
+  in
+  let regression_term =
+    Term.(
+      const
+        (analyze ~backend (`Repeats 1)
+           (`Cache [ Merl_an.Merlin.Cache_workflow.Buffer_typed ]))
+      $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
+      $ Args.query_types $ Args.extensions)
+  in
+  let info =
+    let doc =
+      "Create a new pure data set to analyze ocamlmerlin on a given project. \
+       The data is pure in the sense that if you run the command twice with \
+       the same input, the created data will be the same. To produce pure \
+       data, the [timing] component of the merlin response is being cropped. \
+       This command is useful for end-to-end regression analyzis of the \
+       ocamlmerlin responses. "
+    in
+    Cmd.info "regression" ~doc ~man
+  in
+  Cmd.v info regression_term
+
+let error_regression =
+  let backend =
     (module Merl_an.Backend.Error_regression : Merl_an.Backend.Data_tables)
   in
   let regression_term =
@@ -88,6 +113,6 @@ let benchmark =
 
 let main =
   Cmd.group ~default:performance_term (Cmd.info "merl-an" ~man)
-    [ performance; regression; benchmark ]
+    [ performance; error_regression; regression; benchmark ]
 
 let () = exit (Cmd.eval main)

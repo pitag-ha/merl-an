@@ -1,4 +1,4 @@
-TODO stderr:
+TODO     stderr:
 /bin/sh: -c: line 0: syntax error near unexpected token `('
 /bin/sh: -c: line 0: `ocamlmerlin server complete-prefix -prefix ( + -position '3:12' -filename /Users/rafal/Projects/Tarides/merl-an/_build/default/test/error_regression.t/test.ml < /Users/rafal/Projects/Tarides/merl-an/_build/default/test/error_regression.t/test.ml'
 /bin/sh: -c: line 0: syntax error near unexpected token `('
