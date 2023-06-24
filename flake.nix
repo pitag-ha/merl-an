@@ -32,6 +32,11 @@
               version = "n/a";
               src = ./.;
               duneVersion = "3";
+              nativeBuildInputs = [
+                pkgs.jq
+                pkgs.ocamlPackages.merlin
+                cb-check
+              ];
               buildInputs = with pkgs.ocamlPackages;
                 [
                     ocaml
@@ -48,7 +53,6 @@
                 ];
               checkInputs = with pkgs.ocamlPackages;
                 [ merlin
-                  pkgs.jq
                 ];
               doCheck = true;
             };
@@ -57,8 +61,9 @@
             inputsFrom = pkgs.lib.attrValues packages;
             buildInputs = with pkgs.ocamlPackages; [
               pkgs.ocamlformat_0_24_1
-              merlin
               cb-check
+              ocaml-lsp
+              pkgs.jq
             ];
           };
         });

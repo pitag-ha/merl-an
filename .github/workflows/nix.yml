@@ -16,7 +16,7 @@ jobs:
       uses: cachix/install-nix-action@v21
       with:
         nix_path: nixpkgs=channel:nixos-unstable
-    - run: nix develop -c dune test
+    - run: nix build
   fmt:
     runs-on: ubuntu-latest
     steps:
