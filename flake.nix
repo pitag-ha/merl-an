@@ -57,8 +57,8 @@
             inputsFrom = pkgs.lib.attrValues packages;
             buildInputs = with pkgs.ocamlPackages; [
               pkgs.ocamlformat_0_24_1
-              merlin
               cb-check
+              ocaml-lsp
             ];
           };
         });
