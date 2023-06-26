@@ -1,0 +1,9 @@
+(cram
+ (enabled_if (= true %{env:REGRESSION=false}))
+ (applies_to :whole_subtree)
+ ; Workaround until https://github.com/ocaml/merlin/pull/1622 is released
+ ; Tests are executed sequentially to avoid race conditions
+ (locks regression_tests))
+
+(cram
+ (deps %{bin:merl-an}))
