@@ -1,3 +1,14 @@
+
+  $ git clone https://github.com/mirage/irmin.git > /dev/null
+
+  $ cd irmin > /dev/null
+
+  $ sudo apt install -y gnuplot > /dev/null
+
+  $ opam install . --deps-only --with-test --no-checksums -y > /dev/null
+
+  $ opam exec -- dune build > /dev/null
+
   $ merl-an error-regression -s 1 --data=test-data 2> /dev/null
 
   $ cat test-data/results.json
