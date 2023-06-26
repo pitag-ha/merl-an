@@ -1,11 +1,11 @@
-  $ git clone https://github.com/mirage/irmin.git
+  $ git clone https://github.com/mirage/irmin.git > /dev/null
 
   $ cd irmin
 
-  $ opam install . --deps-only --with-test -y
+  $ opam install . --deps-only --with-test -y > /dev/null
   
-  $ dune build
+  $ dune build > /dev/null
 
-  $ merl-an regression -s 1 --data=test-data
+  $ merl-an error-regression -s 1 --data=test-data 2> /dev/null
 
   $ cat test-data/results.json
