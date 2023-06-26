@@ -129,16 +129,15 @@ module Benchmark_result = struct
 end
 
 module Benchmark_summary = struct
-  type t = { name : string; mutable results : Benchmark_result.t StringMap.t }
+  type t = { mutable results : Benchmark_result.t StringMap.t }
 
   (* TODO: Figure out a way to remove intermediate type *)
-  type t1 = { name : string; results : Benchmark_result.t1 list }
+  type t1 = { results : Benchmark_result.t1 list }
   [@@deriving yojson_of]
 
   let pp ppf data =
-    let convert ({ name; results } : t) =
+    let convert ({ results } : t) =
       {
-        name;
         results =
           StringMap.bindings results |> List.map snd
           |> List.map Benchmark_result.convert;
@@ -424,7 +423,7 @@ module Benchmark = struct
 
   let create_initial merlins =
     {
-      bench = { name = "Merlin benchmark"; results = StringMap.empty };
+      bench = { results = StringMap.empty };
       query_responses = [];
       commands = [];
       logs = [];
