@@ -41,5 +41,13 @@ jobs:
       - name: Install merlin
         run: opam install merlin
 
+      - name: Prepare irmin
+        run: |
+          git clone https://github.com/mirage/irmin.git
+          cd irmin
+          apt install -y gnuplot
+          opam install . --deps-only --with-test --no-checksums -y > /dev/null
+          dune build
+
       - name: Run tests
         run: REGRESSION=true opam exec -- dune test regression
