@@ -43,11 +43,12 @@ jobs:
 
       - name: Prepare irmin
         run: |
+          cd regression
           git clone https://github.com/mirage/irmin.git
           cd irmin
           sudo apt install -y gnuplot
           opam install . --deps-only --with-test --no-checksums -y > /dev/null
-          dune build
+          opam exec -- dune build
 
       - name: Run tests
         run: REGRESSION=true opam exec -- dune test regression
