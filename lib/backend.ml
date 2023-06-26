@@ -132,8 +132,7 @@ module Benchmark_summary = struct
   type t = { mutable results : Benchmark_result.t StringMap.t }
 
   (* TODO: Figure out a way to remove intermediate type *)
-  type t1 = { results : Benchmark_result.t1 list }
-  [@@deriving yojson_of]
+  type t1 = { results : Benchmark_result.t1 list } [@@deriving yojson_of]
 
   let pp ppf data =
     let convert ({ results } : t) =
