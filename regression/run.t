@@ -2,7 +2,7 @@
 
   $ cd irmin
 
-  $ opam install . --deps-only --with-test
+  $ opam install . --deps-only --with-test -y
   
   $ dune build
 
