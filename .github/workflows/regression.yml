@@ -42,4 +42,4 @@ jobs:
         run: opam install merlin
 
       - name: Run tests
-        run: opam exec -- REGRESSION=true dune test regression
+        run: REGRESSION=true opam exec -- dune test regression
