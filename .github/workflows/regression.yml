@@ -45,7 +45,7 @@ jobs:
         run: |
           git clone https://github.com/mirage/irmin.git
           cd irmin
-          apt install -y gnuplot
+          sudo apt install -y gnuplot
           opam install . --deps-only --with-test --no-checksums -y > /dev/null
           dune build
 
