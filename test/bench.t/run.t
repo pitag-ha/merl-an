@@ -2,7 +2,6 @@
 
   $ jq '.results |= map( .metrics |= map(.value |= map(0)))' test-data/bench.json
   {
-    "name": "Merlin benchmark",
     "results": [
       {
         "name": "buffer-typed",
@@ -81,7 +80,7 @@
   > cb-check
   Correctly parsed some benchmarks:
   {
-    "name": "Merlin benchmark",
+    "name": null,
     "results": [
       {
         "name": "buffer-typed",
