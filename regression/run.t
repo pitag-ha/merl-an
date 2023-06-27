@@ -3,7 +3,7 @@
 
   $ cd irmin > /dev/null
 
-  $ sudo apt install -y gnuplot 2> /dev/null
+  $ sudo apt install -y gnuplot-x11 libgmp-dev pkg-config libffi-dev 2> /dev/null
 
   $ opam install . --deps-only --with-test --no-checksums -y > /dev/null
 
