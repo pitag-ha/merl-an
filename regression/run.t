@@ -1,9 +1,9 @@
 
-  $ git clone https://github.com/mirage/irmin.git > /dev/null
+  $ git clone https://github.com/mirage/irmin.git 2> /dev/null
 
   $ cd irmin > /dev/null
 
-  $ sudo apt install -y gnuplot > /dev/null
+  $ sudo apt install -y gnuplot 2> /dev/null
 
   $ opam install . --deps-only --with-test --no-checksums -y > /dev/null
 
