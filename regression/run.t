@@ -1,15 +1,15 @@
 
-  $ git clone https://github.com/mirage/irmin.git 2> /dev/null
+  $ git clone https://github.com/mirage/irmin.git 2>&1 /dev/null
 
   $ cd irmin > /dev/null
 
-  $ sudo apt install -y gnuplot-x11 libgmp-dev pkg-config libffi-dev 2> /dev/null
+  $ sudo apt install -y gnuplot-x11 libgmp-dev pkg-config libffi-dev 2>&1 /dev/null
 
   $ opam install . --deps-only --with-test --no-checksums -y > /dev/null
 
   $ opam exec -- dune build > /dev/null
 
-  $ merl-an error-regression -s 1 --data=test-data 2> /dev/null
+  $ merl-an error-regression -s 1 --data=test-data 2>&1 /dev/null
 
   $ cat test-data/results.json
   {"sample_id":2616,"merlin_id":0,"success":true}
@@ -2858,3 +2858,5 @@
   {"sample_id":2,"merlin_id":0,"success":true}
   {"sample_id":1,"merlin_id":0,"success":true}
   {"sample_id":0,"merlin_id":0,"success":true}
+
+  $ cat test-data/results.json
