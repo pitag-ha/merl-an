@@ -58,7 +58,7 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
                   })
           merlins
       in
-      id_counter
+      id_counter + 1
     else
       match Samples.generate ~sample_size ~id_counter file query_type with
       | None ->
