@@ -39,7 +39,10 @@ jobs:
         run: opam exec -- dune build
 
       - name: Install merlin
-        run: opam install merlin
+        run: opam install .
+
+      - name: Install merl-an
+        run: opam pin -y merl-an https://github.com/pitag-ha/merl-an.git
 
       - name: Run tests
         run: REGRESSION=true opam exec -- dune test regression
