@@ -9,7 +9,7 @@ val filename : t -> string
 
 val get_files :
   extensions:string list -> Fpath.t list -> (t list, Rresult.R.msg) result
-(** [get_files ~extension dir] produces the list of all files with extension
+(** [get_files ~extension dir] produces sorted list of all files with extension
     [extension] inside [dir] *)
 
 val parse_impl : t -> Ppxlib.Parsetree.structure

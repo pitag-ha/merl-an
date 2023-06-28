@@ -35,7 +35,7 @@ let get_files ~extensions paths =
           (String.concat ", " extensions)
       in
       Error (`Msg msg)
-  | _ -> Ok files
+  | _ -> Ok (List.sort Fpath.compare files)
 
 let parse_impl sourcefile =
   let file = Fpath.to_string sourcefile in
