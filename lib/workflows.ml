@@ -7,7 +7,7 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
   let merlins =
     List.mapi (fun i -> Merlin.make i merlin_path) cache_workflows
   in
-  let proj_path dir = Fpath.v @@ Unix.realpath @@ dir in
+  let proj_path dir = Fpath.v @@ dir in
   let open Result.Syntax in
   let* data_dir =
     match data_dir with
