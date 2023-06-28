@@ -4,7 +4,7 @@ type t = Fpath.t
 
 let yojson_of_t file = `String (Fpath.to_string file)
 let pp = Fpath.pp
-let filename = Fpath.to_string
+let filename = Fpath.filename
 
 let get_files ~extensions paths =
   let open Result.Syntax in
