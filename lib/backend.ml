@@ -147,7 +147,12 @@ module Benchmark_summary = struct
 end
 
 module Error_regression_result = struct
-  type t = { sample_id : int; merlin_id : int; success : bool }
+  type t = {
+    sample_id : int;
+    merlin_id : int;
+    cmd : Merlin.Cmd.t;
+    success : bool;
+  }
   [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
@@ -390,7 +395,7 @@ module Error_regression = struct
       ~query_type:_ tables =
     let resp =
       let success = List.for_all Merlin.Response.is_successful responses in
-      { Error_regression_result.sample_id = id; success; merlin_id }
+      { Error_regression_result.sample_id = id; success; cmd; merlin_id }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
     tables.results <- resp :: tables.results;
