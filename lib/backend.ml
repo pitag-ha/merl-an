@@ -147,11 +147,7 @@ module Benchmark_summary = struct
 end
 
 module Error_regression_result = struct
-  type t = {
-    sample_id : int;
-    cmd : Merlin.Cmd.t;
-    success : bool;
-  }
+  type t = { sample_id : int; cmd : Merlin.Cmd.t; success : bool }
   [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
