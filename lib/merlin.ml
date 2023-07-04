@@ -247,8 +247,8 @@ module Cmd = struct
               let first_half s = String.(sub s 0 ((length s / 2) + 1)) in
               Result.ok
               @@ Format.asprintf
-                   "%a %s -prefix %s -position '%a' -filename %a < %a" basic_cmd
-                   merlin
+                   "%a %s -prefix '%s' -position '%a' -filename %a < %a"
+                   basic_cmd merlin
                    (Query_type.to_string query_type)
                    (first_half @@ Longident.name li)
                    (Location.print_edge Right)
