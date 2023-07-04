@@ -13,8 +13,8 @@
   $ cat test-data/commands.json
   {"sample_id":6,"cmd":"ocamlmerlin single errors -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":1}
   {"sample_id":6,"cmd":"ocamlmerlin server errors -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":0}
-  {"sample_id":1,"cmd":"ocamlmerlin single type-enclosing -position '1:8' -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":1}
-  {"sample_id":1,"cmd":"ocamlmerlin server type-enclosing -position '1:8' -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":0}
+  {"sample_id":1,"cmd":"ocamlmerlin single type-enclosing -position '1:8' -index 0 -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":1}
+  {"sample_id":1,"cmd":"ocamlmerlin server type-enclosing -position '1:8' -index 0 -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":0}
   {"sample_id":0,"cmd":"ocamlmerlin single case-analysis -start '1:8' -end '1:8' -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":1}
   {"sample_id":0,"cmd":"ocamlmerlin server case-analysis -start '1:8' -end '1:8' -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","merlin_id":0}
 
