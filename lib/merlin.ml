@@ -226,8 +226,8 @@ module Cmd = struct
       | Type_enclosing ->
           let* loc = retrieve_loc ~query_type loc in
           Result.ok
-          @@ Format.asprintf "%a %s -position '%a' -filename %a < %a" basic_cmd
-               merlin
+          @@ Format.asprintf "%a %s -position '%a' -index 0 -filename %a < %a"
+               basic_cmd merlin
                (Query_type.to_string query_type)
                (Location.print_edge Right)
                loc File.pp file File.pp file
