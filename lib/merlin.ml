@@ -178,11 +178,8 @@ module Response = struct
 
   let is_successful = function
     | `Assoc answer -> (
-        match List.assoc "timing" answer with
-        | `Assoc timing -> (
-            match List.assoc "clock" timing with
-            | `Int _time -> true
-            | _ -> false)
+        match List.assoc "class" answer with
+        | `String "return" -> true
         | _ -> false)
     | _ -> false
 end
