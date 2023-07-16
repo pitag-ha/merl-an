@@ -77,6 +77,11 @@ module Response : sig
 
   val yojson_of_t : t -> Yojson.Safe.t
 
+  type value_class = Msg of string | Empty | Other
+  type return_class = Return of value_class | Failure | Error | Exception
+
+  val yojson_of_return_class : return_class -> Yojson.Safe.t
+
   val get_timing : t -> int
   (** Extracts the information about time consumption from an [ocamlmerlin]
       response *)
@@ -89,7 +94,7 @@ module Response : sig
   (** Removes the value field from the merlin response, i.e. the actual response
       to the query. *)
 
-  val is_successful : t -> bool
+  val get_return_class : t -> (return_class, Logs.t) result
 end
 
 module Cmd : sig
