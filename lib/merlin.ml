@@ -147,6 +147,10 @@ end
 
 module Response = struct
   type t = Yojson.Safe.t
+  type value_class = Msg of string | Empty | Other [@@deriving yojson_of]
+
+  type return_class = Return of value_class | Failure | Error | Exception
+  [@@deriving yojson_of]
 
   let yojson_of_t x = x
 
@@ -176,12 +180,23 @@ module Response = struct
           "Error while cropping merlin response: reponse should have a key \
            called value."
 
-  let is_successful = function
+  let get_return_class = function
     | `Assoc answer -> (
         match List.assoc "class" answer with
-        | `String "return" -> true
-        | _ -> false)
-    | _ -> false
+        | `String "return" -> (
+            match List.assoc "value" answer with
+            | `List [] -> Ok (Return Empty)
+            | `String msg -> Ok (Return (Msg msg))
+            | _ -> Ok (Return Other))
+        | `String "failure" -> Ok Failure
+        | `String "error" -> Ok Error
+        | `String "exception" -> Ok Exception
+        | _ -> Error (Logs.Error "Unknown return class"))
+    | _ ->
+        Error
+          (Logs.Error
+             "Error while extracting return classe: Response should have key \
+              called class")
 end
 
 module Cmd = struct

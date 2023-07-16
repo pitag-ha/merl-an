@@ -44,8 +44,9 @@ end
 module Performance : Data_tables
 (** The backend for analyzing [merlin]'s performance. *)
 
-module Regression : Data_tables
+type behavior_config = { full : bool; return_class : bool; crash_info : bool }
+
+val behavior : behavior_config -> (module Data_tables)
 (** The backend for testing possible end-to-end [merlin] regressions. *)
 
-module Error_regression : Data_tables
 module Benchmark : Data_tables

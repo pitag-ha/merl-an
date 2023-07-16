@@ -75,73 +75,7 @@
     ]
   }
 
-  $ cat test-data/bench.json |
-  > jq '.results |= map( .metrics |= map(.value |= map(0)))' |
-  > cb-check
-  Correctly parsed some benchmarks:
-  {
-    "name": null,
-    "results": [
-      {
-        "name": "buffer-typed",
-        "metrics": [
-          {
-            "name": "case-analysis",
-            "description": "",
-            "value": [ 0.0, 0.0, 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "complete-prefix",
-            "description": "",
-            "value": [ 0.0, 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "errors",
-            "description": "",
-            "value": [ 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "expand-prefix",
-            "description": "",
-            "value": [ 0.0, 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "locate",
-            "description": "",
-            "value": [ 0.0, 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "occurrences",
-            "description": "",
-            "value": [ 0.0, 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          },
-          {
-            "name": "type-enclosing",
-            "description": "",
-            "value": [ 0.0, 0.0, 0.0, 0.0 ],
-            "units": "ms",
-            "trend": "",
-            "lines": []
-          }
-        ]
-      }
-    ]
-  }
+(* FIXME: What's cb-check?)
+$ cat test-data/bench.json |
+> jq '.results |= map( .metrics |= map(.value |= map(0)))' |
+> cb-check

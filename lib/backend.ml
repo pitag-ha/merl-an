@@ -58,6 +58,22 @@ module Field = struct
       (fun () ->
         let ppf = Format.formatter_of_out_channel oc in
         write_json_lines ~pp ~ppf table_content)
+
+  let dump_opt pp dump_dir tables field =
+    let write_json_lines ~pp ~ppf l =
+      Format.pp_print_list ~pp_sep:Format.pp_print_newline pp ppf l
+    in
+    match Fieldslib.Field.get field tables with
+    | Some content ->
+        let file_name = to_filename field in
+        let file_path = Fpath.(to_string @@ append dump_dir file_name) in
+        let oc = open_out file_path in
+        Fun.protect
+          ~finally:(fun () -> close_out_noerr oc)
+          (fun () ->
+            let ppf = Format.formatter_of_out_channel oc in
+            write_json_lines ~pp ~ppf content)
+    | None -> ()
 end
 
 module P = struct
@@ -78,11 +94,7 @@ module P = struct
 end
 
 module Query_response = struct
-  type t = {
-    sample_id : int;
-    responses : Merlin.Response.t list;
-    merlin_id : int;
-  }
+  type t = { sample_id : int; responses : Merlin.Response.t list }
   [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
@@ -146,8 +158,12 @@ module Benchmark_summary = struct
       (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
 end
 
-module Error_regression_result = struct
-  type t = { sample_id : int; cmd : Merlin.Cmd.t; success : bool }
+module Return_class = struct
+  type t = {
+    sample_id : int;
+    return : Merlin.Response.return_class;
+    cmd : Merlin.Cmd.t;
+  }
   [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
@@ -261,7 +277,7 @@ module Performance = struct
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses = List.map Merlin.Response.crop_value responses in
-      { Query_response.sample_id = id; responses; merlin_id }
+      { Query_response.sample_id = id; responses }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
     tables.performances <- perf :: tables.performances;
@@ -328,85 +344,75 @@ module Performance = struct
          ~merlins:f
 end
 
-module Regression = struct
-  type t = {
-    mutable query_responses : Query_response.t list;
-    mutable commands : Command.t list;
-    mutable logs : Logs.t list;
-  }
-  [@@deriving fields]
+type behavior_config = { full : bool; return_class : bool; crash_info : bool }
 
-  let kind = Regr
+let behavior config =
+  let module Behavior = struct
+    type t = {
+      mutable full_responses : Query_response.t list option;
+      mutable return_classes : Return_class.t list option;
+      mutable commands : Command.t list;
+      mutable logs : Logs.t list;
+    }
+    [@@deriving fields]
 
-  let dump ~dump_dir t =
-    let d = dump_dir in
-    Fields.iter
-      ~query_responses:(Field.dump Query_response.pp d t)
-      ~commands:(Field.dump Command.pp d t)
-      ~logs:(Field.dump Logs.pp d t)
+    let kind = Regr
 
-  let update_analysis_data ~id ~responses ~cmd ~file:_ ~loc:_ ~merlin_id
-      ~query_type:_ tables =
-    let resp =
-      let responses = List.map Merlin.Response.crop_timing responses in
-      { Query_response.sample_id = id; responses; merlin_id }
-    in
-    let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    tables.query_responses <- resp :: tables.query_responses;
-    tables.commands <- cmd :: tables.commands
+    let dump ~dump_dir t =
+      let d = dump_dir in
+      Fields.iter
+        ~full_responses:(Field.dump_opt Query_response.pp d t)
+        ~return_classes:(Field.dump_opt Return_class.pp d t)
+        ~commands:(Field.dump Command.pp d t)
+        ~logs:(Field.dump Logs.pp d t)
 
-  let persist_logs ~log tables = tables.logs <- log :: tables.logs
+    let persist_logs ~log tables = tables.logs <- log :: tables.logs
 
-  let create_initial _merlins =
-    { query_responses = []; commands = []; logs = [] }
+    let update_analysis_data ~id ~responses ~cmd ~file:_ ~loc:_ ~merlin_id
+        ~query_type:_ tables =
+      let command = { Command.sample_id = id; cmd; merlin_id } in
+      tables.commands <- command :: tables.commands;
+      let () =
+        match tables.full_responses with
+        | None -> ()
+        | Some fr ->
+            tables.full_responses <-
+              (let resp =
+                 let responses =
+                   List.map Merlin.Response.crop_timing responses
+                 in
+                 { Query_response.sample_id = id; responses }
+               in
+               Some (resp :: fr))
+      in
+      match tables.return_classes with
+      | None -> ()
+      | Some rc -> (
+          match responses with
+          | [ resp ] -> (
+              match Merlin.Response.get_return_class resp with
+              | Ok return ->
+                  let new_entry =
+                    { Return_class.sample_id = id; return; cmd }
+                  in
+                  tables.return_classes <- Some (new_entry :: rc)
+              | Error log -> persist_logs ~log tables)
+          | _ -> ())
 
-  let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
-    (* TODO: check whether there's data left in memory and, if so, dump it *)
-    ()
+    let create_initial _merlins =
+      let full_responses = if config.full then Some [] else None in
+      let return_classes = if config.return_class then Some [] else None in
+      { full_responses; return_classes; commands = []; logs = [] }
 
-  let all_files () =
-    let f = Field.to_filename in
-    Fields.to_list ~query_responses:f ~commands:f ~logs:f
-end
+    let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
+      (* TODO: check whether there's data left in memory and, if so, dump it *)
+      ()
 
-module Error_regression = struct
-  type t = {
-    mutable results : Error_regression_result.t list;
-    mutable commands : Command.t list;
-    mutable logs : Logs.t list;
-  }
-  [@@deriving fields]
-
-  let kind = Error_regr
-
-  let dump ~dump_dir t =
-    let d = dump_dir in
-    Fields.iter
-      ~results:(Field.dump Error_regression_result.pp d t)
-      ~commands:(Field.dump Command.pp d t)
-      ~logs:(Field.dump Logs.pp d t)
-
-  let update_analysis_data ~id ~responses ~cmd ~file:_ ~loc:_ ~merlin_id
-      ~query_type:_ tables =
-    let resp =
-      let success = List.for_all Merlin.Response.is_successful responses in
-      { Error_regression_result.sample_id = id; success; cmd }
-    in
-    let cmd = { Command.sample_id = id; cmd; merlin_id } in
-    tables.results <- resp :: tables.results;
-    tables.commands <- cmd :: tables.commands
-
-  let persist_logs ~log tables = tables.logs <- log :: tables.logs
-  let create_initial _merlins = { results = []; commands = []; logs = [] }
-
-  let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
-    (* TODO: check whether there's data left in memory and, if so, dump it *)
-    ()
-
-  let all_files () =
-    let f = Field.to_filename in
-    Fields.to_list ~results:f ~commands:f ~logs:f
-end
+    let all_files () =
+      let f = Field.to_filename in
+      Fields.to_list ~full_responses:f ~return_classes:f ~commands:f ~logs:f
+  end in
+  (module Behavior : Data_tables)
 
 module Benchmark = struct
   type t = {
@@ -464,7 +470,7 @@ module Benchmark = struct
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses = List.map Merlin.Response.crop_value responses in
-      { Query_response.sample_id = id; responses; merlin_id }
+      { Query_response.sample_id = id; responses }
     in
     let cmd = { Command.sample_id = id; cmd; merlin_id } in
     let metric =

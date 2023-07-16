@@ -39,3 +39,19 @@ val extensions : [> `Extensions of string list ] Term.t
 val repeats_per_sample : [> `Repeats of int ] Term.t
 (** Number of times you want the same query to be run on the same sample. The
     higher that number, the better to analyze variance. Defaults to 10.*)
+
+val no_full : [> `No_full of bool ] Term.t
+(** In [behavior] cmd, configures whether the whole Merlin response of each
+    query will be dumped. *)
+
+val no_return_class : [> `No_return_class of bool ] Term.t
+(** In [behavior] cmd, configures whether the the following simplification of
+    the Merlin response of each query will be dumped: Dump whether the return
+    class of the response is a [return] containing a message, a return
+    containing a JSON, a [failure], an [error], or an [exception]. *)
+
+val no_crash_info : [> `No_crash_info of bool ] Term.t
+(** In [behavior] cmd, configures whether the the following simplification of
+    the Merlin response of each query will be dumped: Dump whether the return
+    class of the response is a [return] containing a message, a return
+    containing a JSON, a [failure], an [error], or an [exception]. *)
