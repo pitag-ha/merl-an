@@ -45,22 +45,15 @@ let performance =
   Cmd.v info performance_term
 
 let behavior =
-  let f (`No_full no_full) (`No_return_class no_return_class)
-      (`No_crash_info no_crash_info) =
+  let f (`No_full no_full) (`No_cat_data no_cat_data) =
     let config =
-      {
-        Merl_an.Backend.full = not no_full;
-        return_class = not no_return_class;
-        crash_info = not no_crash_info;
-      }
+      { Merl_an.Backend.full = not no_full; category_data = not no_cat_data }
     in
     let backend = Merl_an.Backend.behavior config in
     analyze ~backend (`Repeats 1)
       (`Cache [ Merl_an.Merlin.Cache_workflow.Buffer_typed ])
   in
-  let pre_term =
-    Term.(const f $ Args.no_full $ Args.no_return_class $ Args.no_crash_info)
-  in
+  let pre_term = Term.(const f $ Args.no_full $ Args.no_cat_data) in
   let behavior_term =
     Term.(
       pre_term $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size

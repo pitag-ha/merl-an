@@ -106,22 +106,16 @@ let repeats_per_sample =
     Arg.(value & opt int 10 & info [ "repeats"; "r" ] ~doc)
 
 let no_full =
-  let doc = "Don't dump the full Merlin response for each Merlin query." in
+  let doc = "Don't dump the full Merlin response." in
   named
     (fun x -> `No_full x)
     Arg.(value & opt bool false & info [ "no-full" ] ~doc)
 
-let no_return_class =
-  let doc = "Don't dump the return class of each Merlin query specifically." in
-  named
-    (fun x -> `No_return_class x)
-    Arg.(value & opt bool false & info [ "no-return-class" ] ~doc)
-
-let no_crash_info =
+let no_cat_data =
   let doc =
-    "Don't dump specific info on whether Merlin has crashed between two \
-     queries."
+    "Don't dump the simplification of the Merlin responses into category data, \
+     i.e. into return classes and query number."
   in
   named
-    (fun x -> `No_crash_info x)
-    Arg.(value & opt bool false & info [ "no-crash-info" ] ~doc)
+    (fun x -> `No_cat_data x)
+    Arg.(value & opt bool false & info [ "no-cat-data" ] ~doc)
