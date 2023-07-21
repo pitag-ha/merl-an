@@ -76,7 +76,7 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~merlins ~repeats ~update { samples; file; query_type } =
+let analyze ~merlin ~repeats ~update { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
     Error
@@ -86,26 +86,15 @@ let analyze ~merlins ~repeats ~update { samples; file; query_type } =
             (Merlin.Query_type.to_string query_type)))
   else
     let* () =
-      match List.find_opt Merlin.is_server merlins with
-      | Some merlin -> Merlin.init_cache file merlin
-      | None -> Ok ()
+      if Merlin.is_server merlin then Merlin.init_cache file merlin else Ok ()
     in
-    let traverse_samples ~merlin samples =
-      let rec loop samples =
-        match samples with
-        | [] -> Ok ()
-        | { id; sample = loc, li } :: rest ->
-            let* cmd = Merlin.Cmd.make ~query_type ~file ?li ~loc merlin in
-            let* responses = Merlin.Cmd.run ~repeats cmd in
-            let merlin_id = Merlin.get_id merlin in
-            update { Data.id; responses; cmd; file; loc; query_type; merlin_id };
-            loop rest
-      in
-      loop samples
+    let rec loop samples =
+      match samples with
+      | [] -> Ok ()
+      | { id; sample = loc, li } :: rest ->
+          let* cmd = Merlin.Cmd.make ~query_type ~file ?li ~loc merlin in
+          let* responses = Merlin.Cmd.run ~repeats cmd in
+          update { Data.id; responses; cmd; file; loc; query_type };
+          loop rest
     in
-    List.fold_left
-      (fun acc merlin ->
-        (* FIXME: this only captures the first error in case of multiple errors *)
-        let* () = acc in
-        traverse_samples ~merlin samples)
-      (Ok ()) merlins
+    loop samples

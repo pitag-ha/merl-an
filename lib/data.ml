@@ -7,13 +7,12 @@ type sample = {
   cmd : Merlin.Cmd.t;
   file : File.t;
   loc : Location.t;
-  merlin_id : int;
   query_type : Merlin.Query_type.t;
 }
 
 module Make (B : Backend.Data_tables) = struct
   (* TODO: should probably also contain `repeats` and all the other means of configuration  *)
-  type t = { dump_dir : Fpath.t; mutable content : B.t }
+  type t = { dump_dir : Fpath.t; mutable content : B.t; merlin : Merlin.t }
 
   let create_dir_recursively data_path =
     let dir = Fpath.to_string data_path in
@@ -50,22 +49,24 @@ module Make (B : Backend.Data_tables) = struct
             close_out_noerr oc;
             false)
 
-  (* TODO: this shouldn't be only exactly merlins and dump_dir, but all configuration data. and the data should be stored in Data.t as well*)
-  let init merlins dump_dir =
+  (* TODO: this shouldn't be only exactly dump_dir, but all configuration data. and the data should be stored in Data.t as well*)
+  let init merlin dump_dir =
     create_dir_recursively dump_dir;
-    let tables = B.create_initial merlins in
+    let tables = B.create_initial merlin in
     let data_files = B.all_files () in
     create_files dump_dir data_files;
     if some_file_isnt_writable dump_dir data_files then (
       Format.eprintf "It's not possible to write to the data files\n%!";
       exit 20)
-    else { dump_dir; content = tables }
+    else { dump_dir; content = tables; merlin }
 
-  let update t { id; responses; cmd; file; loc; merlin_id; query_type } =
-    B.update_analysis_data ~id ~responses ~cmd ~file ~loc ~merlin_id ~query_type
-      t.content
+  let update t { id; responses; cmd; file; loc; query_type } =
+    B.update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type t.content
 
   let persist_logs ~log { content; _ } = B.persist_logs ~log content
-  let wrap_up { content; dump_dir } = B.wrap_up content ~dump_dir
-  let dump { dump_dir; content } = B.dump ~dump_dir content
+
+  let wrap_up { content; dump_dir; merlin } =
+    B.wrap_up content ~dump_dir ~merlin
+
+  let dump { dump_dir; content; _ } = B.dump ~dump_dir content
 end

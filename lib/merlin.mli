@@ -23,13 +23,10 @@ type t
 val pp : Format.formatter -> t -> unit
 val yojson_of_t : t -> Yojson.Safe.t
 
-val make : int -> ?comment:string -> Fpath.t -> Cache_workflow.t -> t
+val make : ?comment:string -> Fpath.t -> Cache_workflow.t -> t
 (** Create a [t] value by providing the path of where your [ocamlmerlin]
     executable lives and the frontend you want to be used and the id you want to
     attach to it. *)
-
-val get_id : t -> int
-(** Get the idea of your merlin instance *)
 
 val is_server : t -> bool
 (** Returns [true] if the frontend is [Server] and [false] if it's [Single] *)

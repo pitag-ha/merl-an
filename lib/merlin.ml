@@ -41,7 +41,6 @@ module Path = struct
 end
 
 type t = {
-  id : int;
   path : Path.t;
   cache_workflow : Cache_workflow.t;
   version : Yojson.Safe.t;
@@ -52,7 +51,6 @@ type t = {
 let pp ppf merlin =
   Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t merlin))
 
-let get_id m = m.id
 let is_server merlin = Cache_workflow.uses_server merlin.cache_workflow
 
 let basic_cmd ppf { path; cache_workflow; _ } =
@@ -86,12 +84,12 @@ let untimed_query_str cmd =
   let f = input_line in
   untimed_query_generic ~f cmd
 
-let make id ?comment path cache_workflow =
+let make ?comment path cache_workflow =
   let cmd =
     Printf.sprintf "%s -version" (Cache_workflow.print path cache_workflow)
   in
   let version = `String (untimed_query_str cmd) in
-  { id; path; cache_workflow; version; comment }
+  { path; cache_workflow; version; comment }
 
 module Query_type = struct
   type t =

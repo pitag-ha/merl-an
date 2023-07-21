@@ -3,7 +3,7 @@ open! Import
 val analyze :
   backend:(module Backend.Data_tables) ->
   repeats:int ->
-  cache_workflows:Merlin.Cache_workflow.t list ->
+  cache_workflow:Merlin.Cache_workflow.t ->
   merlin_path:string ->
   proj_dirs:string list ->
   data_dir:string option ->
