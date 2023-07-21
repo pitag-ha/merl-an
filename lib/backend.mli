@@ -11,7 +11,7 @@ module type Data_tables = sig
   val kind : kind
   (** The backend kind *)
 
-  val create_initial : Merlin.t list -> t
+  val create_initial : Merlin.t -> t
   (** Initializes the tables. Data can then be appended to them. *)
 
   val update_analysis_data :
@@ -20,7 +20,6 @@ module type Data_tables = sig
     cmd:Merlin.Cmd.t ->
     file:File.t ->
     loc:Location.t ->
-    merlin_id:int ->
     query_type:Merlin.Query_type.t ->
     t ->
     unit
@@ -35,7 +34,8 @@ module type Data_tables = sig
   val all_files : unit -> Fpath.t list
   (** Returns the list of all files to which the data is dumped with [dump]. *)
 
-  val wrap_up : t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> unit
+  val wrap_up :
+    t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> unit
   (** Call this, before ending the program. It makes sure there's no data left
       in memory anymore and, in case there still is, dumps it (TODO!). Depending
       on the backend kind, it also generates and dumps some metadata. *)

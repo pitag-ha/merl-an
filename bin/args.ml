@@ -28,18 +28,15 @@ let dir_name =
     (fun x -> `Dir_name x)
     Arg.(value & opt (some string) None & info [ "data" ] ~doc)
 
-let cache_workflows =
+let cache_workflow =
   let doc =
     "This tool supports different workflows simulating different states of the \
-     [ocamlmerlin] cache. The option [warm] simulates the situation of a cache \
-     that's initialized in terms of [cmi]-files, but not in terms of \
-     [cmt]-files: it uses the merlin server frontend and only initializes the \
-     cache via a general command using [cmt]-files. The option [freezing] \
-     simulates the situation of opening a new project and running a merlin \
-     query for the first time: it uses the single frontend.\n\
-     By default, this tool gathers data for the three workflows. You can \
-     restrict to less workflows via this option.\n\
-    \    "
+     [ocamlmerlin] cache. The option [bufer-typed] simulates the situation of \
+     using Merlin on a fully typed buffer: the cache of the current typing as \
+     well as the cmi-cache are warm; the cmt-cache is unpredictable. The \
+     option [no-cache] simulates the situation of opening a new project and \
+     running a merlin query for the very first time: it uses the single \
+     frontend."
     (*TODO: Add: The option [hot] simulates the situation of having a \
       fully initialized cache: it uses the merlin server frontend and \
       initializes the cache 100%.*)
@@ -54,7 +51,7 @@ let cache_workflows =
     (fun x -> `Cache x)
     Arg.(
       value
-      & opt (list e) Merl_an.Merlin.Cache_workflow.all
+      & opt e Merl_an.Merlin.Cache_workflow.Buffer_typed
       & info [ "cache" ] ~doc)
 
 let sample_size =

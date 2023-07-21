@@ -18,7 +18,7 @@ val generate :
     sample set together with an updated [id_counter]. *)
 
 val analyze :
-  merlins:Merlin.t list ->
+  merlin:Merlin.t ->
   repeats:int ->
   update:(Data.sample -> unit) ->
   t ->

@@ -6,7 +6,7 @@ module type Data_tables = sig
   type t
 
   val kind : kind
-  val create_initial : Merlin.t list -> t
+  val create_initial : Merlin.t -> t
 
   val update_analysis_data :
     id:int ->
@@ -14,7 +14,6 @@ module type Data_tables = sig
     cmd:Merlin.Cmd.t ->
     file:File.t ->
     loc:Location.t ->
-    merlin_id:int ->
     query_type:Merlin.Query_type.t ->
     t ->
     unit
@@ -22,7 +21,9 @@ module type Data_tables = sig
   val persist_logs : log:Logs.t -> t -> unit
   val dump : dump_dir:Fpath.t -> t -> unit
   val all_files : unit -> Fpath.t list
-  val wrap_up : t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> unit
+
+  val wrap_up :
+    t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> unit
 end
 
 module Field = struct
@@ -82,7 +83,6 @@ module P = struct
     timings : int list;
     max_timing : int;
     file : File.t;
-    merlin_id : int;
     query_type : Merlin.Query_type.t;
     loc : Location.t;
   }
@@ -103,8 +103,7 @@ module Query_response = struct
 end
 
 module Command = struct
-  type t = { sample_id : int; cmd : Merlin.Cmd.t; merlin_id : int }
-  [@@deriving yojson_of]
+  type t = { sample_id : int; cmd : Merlin.Cmd.t } [@@deriving yojson_of]
 
   let pp ppf data =
     Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
@@ -233,7 +232,7 @@ module Performance = struct
     mutable query_responses : Query_response.t list;
     mutable commands : Command.t list;
     mutable logs : Logs.t list;
-    merlins : Merlin.t list;
+    merlin : Merlin.t;
   }
   [@@deriving fields]
 
@@ -245,12 +244,12 @@ module Performance = struct
       Fields.iter ~performances:(Field.dump P.pp d t)
         ~query_responses:(Field.dump Query_response.pp d t)
         ~commands:(Field.dump Command.pp d t)
-        ~logs:(Field.dump Logs.pp d t) ~merlins:(Field.dump Merlin.pp d t)
+        ~logs:(Field.dump Logs.pp d t)
+        ~merlin:(Field.dump_single Merlin.pp d t)
     in
     ()
 
-  let update_analysis_data ~id ~responses ~cmd ~file ~loc ~merlin_id ~query_type
-      tables =
+  let update_analysis_data ~id ~responses ~cmd ~file ~loc ~query_type tables =
     let max_timing, timings, responses =
       (* FIXME: add json struture to the two lists *)
       let rec loop ~max_timing ~responses ~timings = function
@@ -265,35 +264,27 @@ module Performance = struct
       loop ~max_timing:Int.min_int ~responses:[] ~timings:[] responses
     in
     let perf =
-      {
-        P.timings;
-        max_timing;
-        file;
-        query_type;
-        sample_id = id;
-        loc;
-        merlin_id;
-      }
+      { P.timings; max_timing; file; query_type; sample_id = id; loc }
     in
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses = List.map Merlin.Response.crop_value responses in
       { Query_response.sample_id = id; responses }
     in
-    let cmd = { Command.sample_id = id; cmd; merlin_id } in
+    let cmd = { Command.sample_id = id; cmd } in
     tables.performances <- perf :: tables.performances;
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
   let persist_logs ~log tables = tables.logs <- log :: tables.logs
 
-  let create_initial merlins =
+  let create_initial merlin =
     {
       performances = [];
       query_responses = [];
       commands = [];
       logs = [];
-      merlins;
+      merlin;
     }
 
   module Metadata = struct
@@ -301,6 +292,7 @@ module Performance = struct
       date : string option;
       proj : string list;
       total_time : float; (* query_time : float; *)
+      merlin : Merlin.t;
     }
     [@@deriving yojson_of]
 
@@ -314,7 +306,7 @@ module Performance = struct
       let (year, month, day), _ = Ptime.to_date_time epoch in
       Printf.sprintf "%i/%i/%i" day month year
 
-    let produce_and_dump ~dump_dir ~proj_paths =
+    let produce_and_dump ~dump_dir ~proj_paths ~merlin =
       let metadata =
         let total_time = Sys.time () in
         let date = Some (get_date ()) in
@@ -322,6 +314,7 @@ module Performance = struct
           date;
           proj = List.map Fpath.to_string proj_paths;
           total_time;
+          merlin;
           (* query_time; *)
         }
       in
@@ -334,15 +327,15 @@ module Performance = struct
           Format.fprintf ppf "%a" pp metadata)
   end
 
-  let wrap_up _t ~dump_dir ~proj_paths =
+  let wrap_up _t ~dump_dir ~proj_paths ~merlin =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
-    Metadata.produce_and_dump ~dump_dir ~proj_paths
+    Metadata.produce_and_dump ~dump_dir ~proj_paths ~merlin
 
   let all_files () =
     let f = Field.to_filename in
     Metadata.file_name
     :: Fields.to_list ~performances:f ~query_responses:f ~commands:f ~logs:f
-         ~merlins:f
+         ~merlin:f
 end
 
 type behavior_config = { full : bool; category_data : bool }
@@ -369,9 +362,9 @@ let behavior config =
 
     let persist_logs ~log tables = tables.logs <- log :: tables.logs
 
-    let update_analysis_data ~id ~responses ~cmd ~file:_ ~loc:_ ~merlin_id
-        ~query_type:_ tables =
-      let command = { Command.sample_id = id; cmd; merlin_id } in
+    let update_analysis_data ~id ~responses ~cmd ~file:_ ~loc:_ ~query_type:_
+        tables =
+      let command = { Command.sample_id = id; cmd } in
       tables.commands <- command :: tables.commands;
       let () =
         match tables.full_responses with
@@ -407,12 +400,12 @@ let behavior config =
                   persist_logs ~log:log2 tables)
           | _ -> (*FIXME*) ())
 
-    let create_initial _merlins =
+    let create_initial _merlin =
       let full_responses = if config.full then Some [] else None in
       let category_data = if config.category_data then Some [] else None in
       { full_responses; category_data; commands = []; logs = [] }
 
-    let wrap_up _t ~dump_dir:_ ~proj_paths:_ =
+    let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~merlin:_ =
       (* TODO: check whether there's data left in memory and, if so, dump it *)
       ()
 
@@ -428,26 +421,26 @@ module Benchmark = struct
     mutable query_responses : Query_response.t list;
     mutable commands : Command.t list;
     mutable logs : Logs.t list;
-    merlins : Merlin.t list;
+    merlin : Merlin.t;
   }
   [@@deriving fields]
 
   let kind = Bench
 
-  let create_initial merlins =
+  let create_initial merlin =
     {
       bench = { results = StringMap.empty };
       query_responses = [];
       commands = [];
       logs = [];
-      merlins;
+      merlin;
     }
 
   let persist_logs ~log tables = tables.logs <- log :: tables.logs
 
   let all_files () =
     let f = Field.to_filename in
-    Fields.to_list ~bench:f ~query_responses:f ~commands:f ~logs:f ~merlins:f
+    Fields.to_list ~bench:f ~query_responses:f ~commands:f ~logs:f ~merlin:f
 
   let dump ~dump_dir t =
     let d = dump_dir in
@@ -456,12 +449,13 @@ module Benchmark = struct
         ~bench:(Field.dump_single Benchmark_summary.pp d t)
         ~query_responses:(Field.dump Query_response.pp d t)
         ~commands:(Field.dump Command.pp d t)
-        ~logs:(Field.dump Logs.pp d t) ~merlins:(Field.dump Merlin.pp d t)
+        ~logs:(Field.dump Logs.pp d t)
+        ~merlin:(Field.dump_single Merlin.pp d t)
     in
     ()
 
   let update_analysis_data ~id ~responses ~cmd ~file:_file
-      ~loc:(_loc : Import.location) ~merlin_id ~query_type tables =
+      ~loc:(_loc : Import.location) ~query_type tables =
     let max_timing, _timings, responses =
       (* FIXME: add json struture to the two lists *)
       let rec loop ~max_timing ~responses ~timings = function
@@ -480,7 +474,7 @@ module Benchmark = struct
       let responses = List.map Merlin.Response.crop_value responses in
       { Query_response.sample_id = id; responses }
     in
-    let cmd = { Command.sample_id = id; cmd; merlin_id } in
+    let cmd = { Command.sample_id = id; cmd } in
     let metric =
       {
         Benchmark_metric.name = Merlin.Query_type.to_string query_type;
@@ -507,5 +501,5 @@ module Benchmark = struct
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
-  let wrap_up _t ~dump_dir:_ ~proj_paths:_ = ()
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~merlin:_ = ()
 end
