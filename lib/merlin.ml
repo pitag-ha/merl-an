@@ -197,6 +197,17 @@ module Response = struct
           (Logs.Error
              "Error while extracting return classe: Response should have key \
               called class")
+
+  let get_query_num = function
+    | `Assoc answer -> (
+        match List.assoc "query_num" answer with
+        | `Int num -> Ok num
+        | _ -> Error (Logs.Error "Unknown query_num type"))
+    | _ ->
+        Error
+          (Logs.Error
+             "Error while extracting query num: Response should have key \
+              called query_num")
 end
 
 module Cmd = struct

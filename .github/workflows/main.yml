@@ -40,7 +40,9 @@ jobs:
         run: opam exec -- dune build
 
       - name: Install merlin
-        run: opam install merlin
+        run: |
+          opam pin merlin-lib git+https://github.com/pitag-ha/merlin#add-query-num-414
+          opam pin merlin git+https://github.com/pitag-ha/merlin#add-query-num-414
 
       - name: Install cb-check
         run: opam pin -y cb-check https://github.com/ocurrent/current-bench.git

@@ -95,6 +95,7 @@ module Response : sig
       to the query. *)
 
   val get_return_class : t -> (return_class, Logs.t) result
+  val get_query_num : t -> (int, Logs.t) result
 end
 
 module Cmd : sig
