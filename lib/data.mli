@@ -23,6 +23,8 @@ module Make (Backend : Backend.Data_tables) : sig
       The provided path [dir_path] is the path of the directory, inside which
       the data will be persisted as json-line-files. *)
 
+  val init_cache : t -> bool
+
   val update : t -> sample -> unit
   (** Update the data by appending analyzis data of one sample to it. *)
 

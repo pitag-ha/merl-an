@@ -26,6 +26,7 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
   in
   let module D = Data.Make (Backend) in
   let data = D.init merlin data_dir in
+  let init_cache = D.init_cache data in
   let proj_paths = List.map proj_path proj_dirs in
   let* files = File.get_files ~extensions proj_paths in
   (*TODO: add terminal logging when getting the files: log number of files that are going to be benchmarked and, at the end, log how many that are.*)
@@ -63,7 +64,9 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
           D.persist_logs ~log data;
           id_counter
       | Some (samples, new_id_counter) -> (
-          match Samples.analyze ~merlin ~repeats ~update samples with
+          match
+            Samples.analyze ~init_cache ~merlin ~repeats ~update samples
+          with
           | Ok () -> new_id_counter
           | Error log ->
               D.persist_logs ~log data;

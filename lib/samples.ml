@@ -76,7 +76,7 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~merlin ~repeats ~update { samples; file; query_type } =
+let analyze ~init_cache ~merlin ~repeats ~update { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
     Error
@@ -85,9 +85,7 @@ let analyze ~merlin ~repeats ~update { samples; file; query_type } =
             (Yojson.Safe.to_string @@ File.yojson_of_t file)
             (Merlin.Query_type.to_string query_type)))
   else
-    let* () =
-      if Merlin.is_server merlin then Merlin.init_cache file merlin else Ok ()
-    in
+    let* () = if init_cache then Merlin.init_cache file merlin else Ok () in
     let rec loop samples =
       match samples with
       | [] -> Ok ()

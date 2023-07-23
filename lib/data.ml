@@ -35,6 +35,8 @@ module Make (B : Backend.Data_tables) = struct
       Fpath.segs data_path |> List.rev |> get_all_subpaths []
       |> List.iter (fun dir -> try Sys.mkdir dir 0o777 with _ -> ())
 
+  let init_cache d = B.init_cache d.content
+
   let create_files dir =
     List.iter (fun fn ->
         let path = Fpath.(to_string @@ append dir fn) in
