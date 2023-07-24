@@ -14,6 +14,8 @@ module type Data_tables = sig
   val create_initial : Merlin.t -> t
   (** Initializes the tables. Data can then be appended to them. *)
 
+  val init_cache : t -> bool
+
   val update_analysis_data :
     id:int ->
     responses:Merlin.Response.t list ->

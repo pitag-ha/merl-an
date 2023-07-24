@@ -7,6 +7,7 @@ module type Data_tables = sig
 
   val kind : kind
   val create_initial : Merlin.t -> t
+  val init_cache : t -> bool
 
   val update_analysis_data :
     id:int ->
@@ -236,6 +237,7 @@ module Performance = struct
   }
   [@@deriving fields]
 
+  let init_cache p = Merlin.is_server p.merlin
   let kind = Perf
 
   let dump ~dump_dir t =
@@ -409,6 +411,8 @@ let behavior config =
       (* TODO: check whether there's data left in memory and, if so, dump it *)
       ()
 
+    let init_cache _ = false
+
     let all_files () =
       let f = Field.to_filename in
       Fields.to_list ~full_responses:f ~category_data:f ~commands:f ~logs:f
@@ -426,6 +430,7 @@ module Benchmark = struct
   [@@deriving fields]
 
   let kind = Bench
+  let init_cache b = Merlin.is_server b.merlin
 
   let create_initial merlin =
     {
