@@ -73,6 +73,7 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
               new_id_counter)
   in
   let _last_sample_id =
+    (* The traversal is done in files -> query_types order. *)
     List.fold_over_product ~l1:files ~l2:query_types ~init:0
       side_effectively_add_data
   in

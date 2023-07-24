@@ -14,6 +14,7 @@ module List : sig
 
   val fold_over_product :
     l1:'a t -> l2:'b t -> init:'c -> ('c -> 'a * 'b -> 'c) -> 'c
+  (** The outer traversal is done over [l1], the inner traversal over [l2]. *)
 
   val is_empty : 'a t -> bool
 end
