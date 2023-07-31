@@ -16,14 +16,13 @@ module Make (B : Backend.Data_tables) = struct
 
   let create_dir_recursively data_path =
     let dir = Fpath.to_string data_path in
-    if Sys.file_exists dir then (
+    if Sys.file_exists dir then
       (* possible TODO: prompt would be nicer *)
       Format.printf
         "Your data directory %a already exists. So the data in there will be \
          overriden. Sure you want that?? If not, you should interrupt now.\n\
          %!"
-        Fpath.pp data_path;
-      Unix.sleep 60)
+        Fpath.pp data_path (* Unix.sleep 60 *)
     else
       let rec get_all_subpaths acc = function
         | _ :: rest as all ->
