@@ -3,6 +3,7 @@ open! Import
 let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
     ~cache_workflow ~merlin_path ~proj_dirs ~data_dir ~sample_size ~query_types
     ~extensions =
+  let time_beginning = Unix.time () in
   let merlin_path = Fpath.v merlin_path in
   let merlin = Merlin.make merlin_path cache_workflow in
   let proj_path dir = Fpath.v @@ dir in
@@ -72,11 +73,20 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
               D.persist_logs ~log data;
               new_id_counter)
   in
+  let generate_data_time_beg = Unix.time () in
   let _last_sample_id =
+    (* The traversal is done in files -> query_types order. *)
     List.fold_over_product ~l1:files ~l2:query_types ~init:0
       side_effectively_add_data
   in
+  let generate_data_time = Unix.time () -. generate_data_time_beg in
+  let dump_time_beg = Unix.time () in
   D.dump data;
-  D.wrap_up data ~proj_paths;
+  let dump_time = Unix.time () -. dump_time_beg in
+  let sampling_time = !Samples.sampling_time in
+  let query_time = !Merlin.Cmd.query_time in
+  let total_time = Unix.time () -. time_beginning in
+  D.wrap_up data ~proj_paths ~sampling_time ~query_time ~dump_time
+    ~generate_data_time ~total_time;
   if Merlin.is_server merlin then Merlin.stop_server merlin else ();
   Ok ()

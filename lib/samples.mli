@@ -29,3 +29,5 @@ val analyze :
     [samples] also contains info on the file and on the query type the samples
     are for); it runs the query [repeats] times. The new data is appended to
     [data] as a side-effect. *)
+
+val sampling_time : float ref

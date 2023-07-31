@@ -53,28 +53,36 @@ let file_traversal ~update_reservoir query_type =
       | _ -> super#pattern p false
   end
 
+(*FIXME*)
+let sampling_time = ref 0.0
+
 let generate ~sample_size ~id_counter file query_type =
-  match File.parse_impl file with
-  | exception _ -> None
-  | ast ->
-      (* FIXME: filter out locations that would return an error anyways (possibly similar to how patterns are filtered out for [case-analysis] if they belong to a value binding) *)
-      (* TODO: add info to each sample about what kind of node it corresponds to (interesting for queries with more than one possible type of node) *)
-      let random_state = Reservoir.Random_state.make file in
-      let reservoir =
-        Reservoir.init ~placeholder:(Location.none, None) ~random_state
-          sample_size
-      in
-      let update_reservoir = Reservoir.update ~random_state reservoir in
-      let traverser = file_traversal ~update_reservoir query_type in
-      let _ =
-        let is_in_value_binding = false in
-        traverser#structure ast is_in_value_binding
-      in
-      let samples =
-        let make_sample ~id sample = { id; sample } in
-        Reservoir.get_samples ~make_sample ~id_counter reservoir
-      in
-      Some ({ samples; file; query_type }, id_counter + sample_size)
+  let time_before = Unix.time () in
+  let res =
+    match File.parse_impl file with
+    | exception _ -> None
+    | ast ->
+        (* FIXME: filter out locations that would return an error anyways (possibly similar to how patterns are filtered out for [case-analysis] if they belong to a value binding) *)
+        (* TODO: add info to each sample about what kind of node it corresponds to (interesting for queries with more than one possible type of node) *)
+        let random_state = Reservoir.Random_state.make file in
+        let reservoir =
+          Reservoir.init ~placeholder:(Location.none, None) ~random_state
+            sample_size
+        in
+        let update_reservoir = Reservoir.update ~random_state reservoir in
+        let traverser = file_traversal ~update_reservoir query_type in
+        let _ =
+          let is_in_value_binding = false in
+          traverser#structure ast is_in_value_binding
+        in
+        let samples =
+          let make_sample ~id sample = { id; sample } in
+          Reservoir.get_samples ~make_sample ~id_counter reservoir
+        in
+        Some ({ samples; file; query_type }, id_counter + sample_size)
+  in
+  sampling_time := !sampling_time +. (Unix.time () -. time_before);
+  res
 
 let analyze ~init_cache ~merlin ~repeats ~update { samples; file; query_type } =
   let open Result.Syntax in

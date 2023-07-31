@@ -37,7 +37,16 @@ module type Data_tables = sig
   (** Returns the list of all files to which the data is dumped with [dump]. *)
 
   val wrap_up :
-    t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> unit
+    t ->
+    dump_dir:Fpath.t ->
+    proj_paths:Fpath.t list ->
+    merlin:Merlin.t ->
+    sampling_time:float ->
+    query_time:float ->
+    generate_data_time:float ->
+    dump_time:float ->
+    total_time:float ->
+    unit
   (** Call this, before ending the program. It makes sure there's no data left
       in memory anymore and, in case there still is, dumps it (TODO!). Depending
       on the backend kind, it also generates and dumps some metadata. *)

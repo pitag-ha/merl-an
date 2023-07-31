@@ -119,6 +119,9 @@ module Cmd : sig
   val run : repeats:int -> t -> (Response.t list, Logs.t) Result.t
   (** [run ~repeats cmd] runs the concrete [ocamlmerlin] command [cmd]. It runs
       that command [repeat] times in a row and returns the [repeats] responses *)
+
+  (*FIXME*)
+  val query_time : float ref
 end
 with type merlin := t
 

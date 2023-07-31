@@ -24,7 +24,16 @@ module type Data_tables = sig
   val all_files : unit -> Fpath.t list
 
   val wrap_up :
-    t -> dump_dir:Fpath.t -> proj_paths:Fpath.t list -> merlin:Merlin.t -> unit
+    t ->
+    dump_dir:Fpath.t ->
+    proj_paths:Fpath.t list ->
+    merlin:Merlin.t ->
+    sampling_time:float ->
+    query_time:float ->
+    generate_data_time:float ->
+    dump_time:float ->
+    total_time:float ->
+    unit
 end
 
 module Field = struct
@@ -308,9 +317,8 @@ module Performance = struct
       let (year, month, day), _ = Ptime.to_date_time epoch in
       Printf.sprintf "%i/%i/%i" day month year
 
-    let produce_and_dump ~dump_dir ~proj_paths ~merlin =
+    let produce_and_dump ~dump_dir ~proj_paths ~merlin ~total_time =
       let metadata =
-        let total_time = Sys.time () in
         let date = Some (get_date ()) in
         {
           date;
@@ -329,9 +337,10 @@ module Performance = struct
           Format.fprintf ppf "%a" pp metadata)
   end
 
-  let wrap_up _t ~dump_dir ~proj_paths ~merlin =
+  let wrap_up _t ~dump_dir ~proj_paths ~merlin ~sampling_time:_ ~query_time:_
+      ~generate_data_time:_ ~dump_time:_ ~total_time =
     (* TODO: check whether there's data left in memory and, if so, dump it *)
-    Metadata.produce_and_dump ~dump_dir ~proj_paths ~merlin
+    Metadata.produce_and_dump ~dump_dir ~proj_paths ~merlin ~total_time
 
   let all_files () =
     let f = Field.to_filename in
@@ -407,9 +416,48 @@ let behavior config =
       let category_data = if config.category_data then Some [] else None in
       { full_responses; category_data; commands = []; logs = [] }
 
-    let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~merlin:_ =
+    module Metadata = struct
+      type t = {
+        total_time : float;
+        generate_data_time : float;
+        sampling_time : float;
+        query_time : float;
+        dump_time : float;
+        merlin : Merlin.t;
+      }
+      [@@deriving yojson_of]
+
+      let file_name = Fpath.v "metadata.json"
+
+      let pp ppf data =
+        Format.fprintf ppf "%s%!" (Yojson.Safe.to_string (yojson_of_t data))
+
+      let produce_and_dump ~dump_dir ~merlin ~sampling_time ~query_time
+          ~generate_data_time ~dump_time ~total_time =
+        let metadata =
+          {
+            total_time;
+            merlin;
+            generate_data_time;
+            sampling_time;
+            query_time;
+            dump_time;
+          }
+        in
+        let file_path = Fpath.(to_string @@ append dump_dir file_name) in
+        let oc = open_out file_path in
+        Fun.protect
+          ~finally:(fun () -> close_out_noerr oc)
+          (fun () ->
+            let ppf = Format.formatter_of_out_channel oc in
+            Format.fprintf ppf "%a" pp metadata)
+    end
+
+    let wrap_up _t ~dump_dir ~proj_paths:_ ~merlin ~sampling_time ~query_time
+        ~generate_data_time ~dump_time ~total_time =
       (* TODO: check whether there's data left in memory and, if so, dump it *)
-      ()
+      Metadata.produce_and_dump ~dump_dir ~merlin ~sampling_time ~query_time
+        ~generate_data_time ~dump_time ~total_time
 
     let init_cache _ = false
 
@@ -506,5 +554,7 @@ module Benchmark = struct
     tables.query_responses <- resp :: tables.query_responses;
     tables.commands <- cmd :: tables.commands
 
-  let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~merlin:_ = ()
+  let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~merlin:_ ~sampling_time:_
+      ~query_time:_ ~generate_data_time:_ ~dump_time:_ ~total_time:_ =
+    ()
 end

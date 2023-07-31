@@ -310,16 +310,24 @@ module Cmd = struct
     let repl = untimed_query_json cmd in
     repl
 
+  (* FIXME*)
+  let query_time = ref 0.0
+
   let run ~repeats cmd =
-    try
-      let rec loop responses = function
-        | 0 -> responses
-        | n ->
-            let new_resp = run_once cmd in
-            loop (new_resp :: responses) (n - 1)
-      in
-      Ok (loop [] repeats)
-    with exc -> Error (Logs.Error (Printexc.to_string exc))
+    let time_before = Unix.time () in
+    let res =
+      try
+        let rec loop responses = function
+          | 0 -> responses
+          | n ->
+              let new_resp = run_once cmd in
+              loop (new_resp :: responses) (n - 1)
+        in
+        Ok (loop [] repeats)
+      with exc -> Error (Logs.Error (Printexc.to_string exc))
+    in
+    query_time := !query_time +. (Unix.time () -. time_before);
+    res
 end
 
 let init_cache file merlin =
