@@ -34,6 +34,23 @@
         "type": "github"
       }
     },
+    "merlin-repository": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1689969475,
+        "narHash": "sha256-AxPK7hFsq0ttycaQXTUVnSeY4V21P6VDzrjWJCY3ExI=",
+        "owner": "pitag-ha",
+        "repo": "merlin",
+        "rev": "4b6af887232cf9ca79d2eef987ea8576f6aa3e9f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pitag-ha",
+        "ref": "add-query-num-414",
+        "repo": "merlin",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1687338922,
@@ -53,6 +70,7 @@
       "inputs": {
         "cb-repository": "cb-repository",
         "flake-utils": "flake-utils",
+        "merlin-repository": "merlin-repository",
         "nixpkgs": "nixpkgs"
       }
     },
