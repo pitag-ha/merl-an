@@ -6,9 +6,14 @@
     url = "github:ocurrent/current-bench";
     flake = false;
   };
+  # We're using custom merlin from Sonja's branch.
+  # It's an old fork without flake.nix, thus we build it the hard way.
+  inputs.merlin-repository = {
+    url = "github:pitag-ha/merlin/add-query-num-414";
+    flake = false;
+  };
 
-
-  outputs = { self, nixpkgs, flake-utils, cb-repository }:
+  outputs = { self, nixpkgs, flake-utils, cb-repository, merlin-repository }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -23,6 +28,54 @@
             yojson
           ];
         };
+        merlin-lib = buildDunePackage {
+            pname = "merlin-lib";
+            version = "dev";
+            src = merlin-repository;
+            duneVersion = "3";
+            propagatedBuildInputs = with pkgs.ocamlPackages; [
+              csexp
+            ];
+            doCheck = true;
+          };
+        dot-merlin-reader = buildDunePackage {
+            pname = "dot-merlin-reader";
+            version = "dev";
+            src = merlin-repository;
+            duneVersion = "3";
+            propagatedBuildInputs = [
+              pkgs.ocamlPackages.findlib
+            ];
+            buildInputs = [
+              merlin-lib
+            ];
+            doCheck = true;
+          };
+        merlin = buildDunePackage {
+            pname = "merlin";
+            version = "dev";
+            src = merlin-repository;
+            duneVersion = "3";
+            buildInputs = [
+              merlin-lib
+              dot-merlin-reader
+              pkgs.ocamlPackages.menhirLib
+              pkgs.ocamlPackages.menhirSdk
+              pkgs.ocamlPackages.yojson
+            ];
+            nativeBuildInputs = [
+              pkgs.ocamlPackages.menhir
+              pkgs.jq
+            ];
+            nativeCheckInputs = [ dot-merlin-reader ];
+            checkInputs = with pkgs.ocamlPackages; [
+              ppxlib
+            ];
+            doCheck = false;
+            meta = with pkgs; {
+              mainProgram = "ocamlmerlin";
+            };
+          };
       in
         rec {
           packages = rec {
@@ -34,7 +87,7 @@
               duneVersion = "3";
               nativeBuildInputs = [
                 pkgs.jq
-                pkgs.ocamlPackages.merlin
+                merlin
                 cb-check
               ];
               buildInputs = with pkgs.ocamlPackages;
@@ -51,7 +104,7 @@
                     ppx_yojson_conv
                     ptime
                 ];
-              checkInputs = with pkgs.ocamlPackages;
+              checkInputs =
                 [ merlin
                 ];
               doCheck = true;
