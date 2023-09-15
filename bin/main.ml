@@ -24,7 +24,8 @@ let analyze ~backend (`Repeats repeats) (`Cache cache_workflow)
       Printf.eprintf "%s" err;
       exit 50
   | exception exc ->
-      Printf.eprintf "%s" @@ Printexc.to_string @@ exc;
+      Printf.eprintf "%s\n" @@ Printexc.to_string @@ exc;
+      Printf.eprintf "%s\n" @@ Printexc.get_backtrace @@ ();
       exit 100
 
 let performance_term =
