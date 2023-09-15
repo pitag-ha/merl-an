@@ -15,6 +15,11 @@ let analyze ~backend (`Repeats repeats) (`Cache cache_workflow)
     (`Merlin merlin_path) (`Proj_dirs proj_dirs) (`Dir_name data_dir)
     (`Sample_size sample_size) (`Query_types query_types)
     (`Extensions extensions) =
+  Printf.printf "Backtrace status before enabling it: %b\n%!"
+    (Printexc.backtrace_status ());
+  Printexc.record_backtrace true;
+  Printf.printf "Backtrace status after enabling it: %b\n%!"
+    (Printexc.backtrace_status ());
   match
     Merl_an.Workflows.analyze ~backend ~repeats ~cache_workflow ~merlin_path
       ~proj_dirs ~data_dir ~sample_size ~query_types ~extensions
