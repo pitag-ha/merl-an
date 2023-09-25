@@ -375,7 +375,10 @@ let behavior config =
             tables.full_responses <-
               (let resp =
                  let responses =
-                   List.map Merlin.Response.crop_timing responses
+                   List.map
+                     (fun resp ->
+                       Merlin.Response.(strip_file @@ crop_timing @@ resp))
+                     responses
                  in
                  { Query_response.sample_id = id; responses }
                in
