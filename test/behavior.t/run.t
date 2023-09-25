@@ -17,12 +17,14 @@
   {"sample_id":0,"return":["Return",["Other"]],"query_num":0,"cmd":"ocamlmerlin server case-analysis -start '3:14' -end '3:14' -filename test.ml < test.ml"}
 
 (* FIXME: This is a problem in all tests: The build artefacts aren't found.*)
-  $ cat test-data/full_responses.json | sed "/No config found for file/d" | sed "/\"file\":/d"
+  $ cat test-data/full_responses.json | sed "/No config found for file/d"
+  {"sample_id":12,"responses":[{"class":"return","value":{"file":"/home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml","pos":{"line":94,"col":0}},"notifications":[],"query_num":12}]}
   {"sample_id":11,"responses":[{"class":"return","value":{"entries":[{"name":"()","kind":"Constructor","desc":"","info":"","deprecated":false}],"context":null},"notifications":[],"query_num":11}]}
   {"sample_id":10,"responses":[{"class":"return","value":{"entries":[],"context":["application",{"argument_type":"'a","labels":[]}]},"notifications":[],"query_num":10}]}
   {"sample_id":9,"responses":[{"class":"return","value":[{"start":{"line":3,"col":12},"end":{"line":3,"col":13}}],"notifications":[],"query_num":9}]}
   {"sample_id":8,"responses":[{"class":"return","value":[{"start":{"line":1,"col":8},"end":{"line":1,"col":9},"type":"int","tail":"no"}],"notifications":[],"query_num":8}]}
   {"sample_id":7,"responses":[{"class":"return","value":[{"start":{"line":1,"col":8},"end":{"line":1,"col":9}},"match 1 with | 0 -> _ | _ -> _"],"notifications":[],"query_num":7}]}
+  {"sample_id":5,"responses":[{"class":"return","value":{"file":"/home/sonja/.opam/4.14.0/lib/ocaml/stdlib.ml","pos":{"line":94,"col":0}},"notifications":[],"query_num":5}]}
   {"sample_id":4,"responses":[{"class":"return","value":{"entries":[{"name":"()","kind":"Constructor","desc":"","info":"","deprecated":false}],"context":null},"notifications":[],"query_num":4}]}
   {"sample_id":3,"responses":[{"class":"return","value":{"entries":[],"context":["application",{"argument_type":"'a","labels":[]}]},"notifications":[],"query_num":3}]}
   {"sample_id":2,"responses":[{"class":"return","value":[{"start":{"line":3,"col":12},"end":{"line":3,"col":13}}],"notifications":[],"query_num":2}]}
