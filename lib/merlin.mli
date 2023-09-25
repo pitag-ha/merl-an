@@ -91,6 +91,11 @@ module Response : sig
   (** Removes the value field from the merlin response, i.e. the actual response
       to the query. *)
 
+  val strip_file : t -> t
+  (** In a Merlin response of the form [{"value":{"file":file_dir, ...}, ...}],
+      where [file_dir] is a qualified file name, this strips off the directory
+      from [file_dir], keeping only its file base name.*)
+
   val get_return_class : t -> (return_class, Logs.t) result
   val get_query_num : t -> (int, Logs.t) result
 end

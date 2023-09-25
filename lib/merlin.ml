@@ -178,6 +178,26 @@ module Response = struct
           "Error while cropping merlin response: reponse should have a key \
            called value."
 
+  (* FIXME: Could be more readable. *)
+  let strip_file = function
+    | `Assoc l ->
+        `Assoc
+          (List.map
+             (function
+               | "value", `Assoc v ->
+                   ( "value",
+                     `Assoc
+                       (List.map
+                          (function
+                            | "file", `String f ->
+                                let base = Stdlib.Filename.basename f in
+                                ("file", `String base)
+                            | other -> other)
+                          v) )
+               | other -> other)
+             l)
+    | other -> other
+
   let get_return_class = function
     | `Assoc answer -> (
         match List.assoc "class" answer with
