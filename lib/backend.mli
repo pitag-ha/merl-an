@@ -46,7 +46,7 @@ end
 module Performance : Data_tables
 (** The backend for analyzing [merlin]'s performance. *)
 
-type behavior_config = { full : bool; category_data : bool }
+type behavior_config = { full : bool; distilled_data : bool }
 
 val behavior : behavior_config -> (module Data_tables)
 (** The backend for testing possible end-to-end [merlin] regressions. *)

@@ -1,6 +1,6 @@
   $ merl-an behavior -s 1 -p test.ml,test1.ml --data=test-data
 
-  $ cat test-data/category_data.json
+  $ cat test-data/distilled_data.json
   {"sample_id":13,"return":["Return",["Other"]],"query_num":13,"cmd":"ocamlmerlin server errors -filename test1.ml < test1.ml"}
   {"sample_id":12,"return":["Return",["Other"]],"query_num":12,"cmd":" ocamlmerlin server locate -look-for ml -position '3:12' -filename test1.ml < test1.ml"}
   {"sample_id":11,"return":["Return",["Other"]],"query_num":11,"cmd":"ocamlmerlin server expand-prefix -prefix '( +' -position '3:12' -filename test1.ml < test1.ml"}
