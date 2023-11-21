@@ -42,7 +42,7 @@ val no_full : [> `No_full of bool ] Term.t
 (** In [behavior] cmd, configures whether the whole Merlin response of each
     query will be dumped. *)
 
-val no_cat_data : [> `No_cat_data of bool ] Term.t
+val no_distilled_data : [> `No_distilled_data of bool ] Term.t
 (** In [behavior] cmd, configures whether the the following simplification of
     the Merlin response of each query will be dumped: Dump whether the return
     class of the response is a [return] containing a message, a return

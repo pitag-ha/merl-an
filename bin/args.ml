@@ -108,11 +108,11 @@ let no_full =
     (fun x -> `No_full x)
     Arg.(value & opt bool false & info [ "no-full" ] ~doc)
 
-let no_cat_data =
+let no_distilled_data =
   let doc =
-    "Don't dump the simplification of the Merlin responses into category data, \
-     i.e. into return classes and query number."
+    "Don't dump the distillation of the Merlin responses down into category \
+     data, i.e. into return classes and query number."
   in
   named
-    (fun x -> `No_cat_data x)
-    Arg.(value & opt bool false & info [ "no-cat-data" ] ~doc)
+    (fun x -> `No_distilled_data x)
+    Arg.(value & opt bool false & info [ "no-distilled-data" ] ~doc)

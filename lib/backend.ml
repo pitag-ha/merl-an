@@ -158,7 +158,7 @@ module Benchmark_summary = struct
       (Yojson.Safe.to_string (yojson_of_t1 (convert data)))
 end
 
-module Category_data = struct
+module Distilled_data = struct
   type t = {
     sample_id : int;
     return : Merlin.Response.return_class;
@@ -340,13 +340,13 @@ module Performance = struct
          ~merlin:f
 end
 
-type behavior_config = { full : bool; category_data : bool }
+type behavior_config = { full : bool; distilled_data : bool }
 
 let behavior config =
   let module Behavior = struct
     type t = {
       mutable full_responses : Query_response.t list option;
-      mutable category_data : Category_data.t list option;
+      mutable distilled_data : Distilled_data.t list option;
       mutable commands : Command.t list;
       mutable logs : Logs.t list;
     }
@@ -358,7 +358,7 @@ let behavior config =
       let d = dump_dir in
       Fields.iter
         ~full_responses:(Field.dump_opt Query_response.pp d t)
-        ~category_data:(Field.dump_opt Category_data.pp d t)
+        ~distilled_data:(Field.dump_opt Distilled_data.pp d t)
         ~commands:(Field.dump Command.pp d t)
         ~logs:(Field.dump Logs.pp d t)
 
@@ -384,7 +384,7 @@ let behavior config =
                in
                Some (resp :: fr))
       in
-      match tables.category_data with
+      match tables.distilled_data with
       | None -> ()
       | Some rc -> (
           match responses with
@@ -395,9 +395,9 @@ let behavior config =
               with
               | Ok return, Ok query_num ->
                   let new_entry =
-                    { Category_data.sample_id = id; return; query_num; cmd }
+                    { Distilled_data.sample_id = id; return; query_num; cmd }
                   in
-                  tables.category_data <- Some (new_entry :: rc)
+                  tables.distilled_data <- Some (new_entry :: rc)
               | Error log, Ok _ -> persist_logs ~log tables
               | Ok _, Error log -> persist_logs ~log tables
               | Error log1, Error log2 ->
@@ -407,8 +407,8 @@ let behavior config =
 
     let create_initial _merlin =
       let full_responses = if config.full then Some [] else None in
-      let category_data = if config.category_data then Some [] else None in
-      { full_responses; category_data; commands = []; logs = [] }
+      let distilled_data = if config.distilled_data then Some [] else None in
+      { full_responses; distilled_data; commands = []; logs = [] }
 
     let wrap_up _t ~dump_dir:_ ~proj_paths:_ ~merlin:_ =
       (* TODO: check whether there's data left in memory and, if so, dump it *)
@@ -418,7 +418,7 @@ let behavior config =
 
     let all_files () =
       let f = Field.to_filename in
-      Fields.to_list ~full_responses:f ~category_data:f ~commands:f ~logs:f
+      Fields.to_list ~full_responses:f ~distilled_data:f ~commands:f ~logs:f
   end in
   (module Behavior : Data_tables)
 
