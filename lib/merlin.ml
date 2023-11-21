@@ -218,8 +218,8 @@ module Response = struct
 
   let get_query_num = function
     | `Assoc answer -> (
-        match List.assoc "query_num" answer with
-        | `Int num -> Ok num
+        match List.assoc_opt "query_num" answer with
+        | Some (`Int num) -> Ok num
         | _ -> Error (Logs.Error "Unknown query_num type"))
     | _ ->
         Error
