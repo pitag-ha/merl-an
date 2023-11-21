@@ -161,8 +161,8 @@ end
 module Distilled_data = struct
   type t = {
     sample_id : int;
-    return : Merlin.Response.return_class;
-    query_num : int;
+    return : Merlin.Response.return_class option;
+    query_num : int option;
     cmd : Merlin.Cmd.t;
   }
   [@@deriving yojson_of]
@@ -395,11 +395,36 @@ let behavior config =
               with
               | Ok return, Ok query_num ->
                   let new_entry =
-                    { Distilled_data.sample_id = id; return; query_num; cmd }
+                    {
+                      Distilled_data.sample_id = id;
+                      return = Some return;
+                      query_num = Some query_num;
+                      cmd;
+                    }
                   in
                   tables.distilled_data <- Some (new_entry :: rc)
-              | Error log, Ok _ -> persist_logs ~log tables
-              | Ok _, Error log -> persist_logs ~log tables
+              | Error log, Ok query_num ->
+                  persist_logs ~log tables;
+                  let new_entry =
+                    {
+                      Distilled_data.sample_id = id;
+                      return = None;
+                      query_num = Some query_num;
+                      cmd;
+                    }
+                  in
+                  tables.distilled_data <- Some (new_entry :: rc)
+              | Ok return, Error log ->
+                  persist_logs ~log tables;
+                  let new_entry =
+                    {
+                      Distilled_data.sample_id = id;
+                      return = Some return;
+                      query_num = None;
+                      cmd;
+                    }
+                  in
+                  tables.distilled_data <- Some (new_entry :: rc)
               | Error log1, Error log2 ->
                   persist_logs ~log:log1 tables;
                   persist_logs ~log:log2 tables)
