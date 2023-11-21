@@ -95,7 +95,11 @@ module P = struct
 end
 
 module Query_response = struct
-  type t = { sample_id : int; responses : Merlin.Response.t list }
+  type t = {
+    sample_id : int;
+    cmd : Merlin.Cmd.t;
+    responses : Merlin.Response.t list;
+  }
   [@@deriving yojson_of]
 
   (* FIXME: print the sample repeats in a separate json field *)
@@ -161,9 +165,9 @@ end
 module Distilled_data = struct
   type t = {
     sample_id : int;
+    cmd : Merlin.Cmd.t;
     return : Merlin.Response.return_class option;
     query_num : int option;
-    cmd : Merlin.Cmd.t;
   }
   [@@deriving yojson_of]
 
@@ -271,7 +275,7 @@ module Performance = struct
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses = List.map Merlin.Response.crop_value responses in
-      { Query_response.sample_id = id; responses }
+      { Query_response.sample_id = id; cmd; responses }
     in
     let cmd = { Command.sample_id = id; cmd } in
     tables.performances <- perf :: tables.performances;
@@ -380,7 +384,7 @@ let behavior config =
                        Merlin.Response.(strip_file @@ crop_timing @@ resp))
                      responses
                  in
-                 { Query_response.sample_id = id; responses }
+                 { Query_response.sample_id = id; cmd; responses }
                in
                Some (resp :: fr))
       in
@@ -505,7 +509,7 @@ module Benchmark = struct
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses = List.map Merlin.Response.crop_value responses in
-      { Query_response.sample_id = id; responses }
+      { Query_response.sample_id = id; cmd; responses }
     in
     let cmd = { Command.sample_id = id; cmd } in
     let metric =

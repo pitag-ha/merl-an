@@ -21,6 +21,6 @@
   > | .typer |= 0
   > | .error |= 0)
   > )'
-  {"sample_id":6,"responses":[{"class":"return","notifications":[],"timing":{"clock":0,"cpu":0,"query":0,"pp":0,"reader":0,"ppx":0,"typer":0,"error":0},"query_num":4}]}
-  {"sample_id":1,"responses":[{"class":"return","notifications":[],"timing":{"clock":0,"cpu":0,"query":0,"pp":0,"reader":0,"ppx":0,"typer":0,"error":0},"query_num":3}]}
-  {"sample_id":0,"responses":[{"class":"return","notifications":[],"timing":{"clock":0,"cpu":0,"query":0,"pp":0,"reader":0,"ppx":0,"typer":0,"error":0},"query_num":1}]}
+  {"sample_id":6,"cmd":"ocamlmerlin server errors -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","responses":[{"class":"return","notifications":[],"timing":{"clock":0,"cpu":0,"query":0,"pp":0,"reader":0,"ppx":0,"typer":0,"error":0},"query_num":4}]}
+  {"sample_id":1,"cmd":"ocamlmerlin server type-enclosing -position '1:8' -index 0 -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","responses":[{"class":"return","notifications":[],"timing":{"clock":0,"cpu":0,"query":0,"pp":0,"reader":0,"ppx":0,"typer":0,"error":0},"query_num":3}]}
+  {"sample_id":0,"cmd":"ocamlmerlin server case-analysis -start '1:8' -end '1:8' -filename files/nested-dir/perf.ml < files/nested-dir/perf.ml","responses":[{"class":"return","notifications":[],"timing":{"clock":0,"cpu":0,"query":0,"pp":0,"reader":0,"ppx":0,"typer":0,"error":0},"query_num":1}]}
