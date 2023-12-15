@@ -1,4 +1,4 @@
-  $ merl-an benchmark -s 2 -p bench.ml,bench1.ml --data=test-data
+  $ merl-an benchmark -r 2 -s 2 -p bench.ml,bench1.ml --data=test-data
 
   $ jq '.results |= map( .metrics |= map(.value |= map(0)))' test-data/bench.json
   {
@@ -12,6 +12,10 @@
               0,
               0,
               0,
+              0,
+              0,
+              0,
+              0,
               0
             ],
             "units": "ms"
@@ -19,6 +23,9 @@
           {
             "name": "complete-prefix",
             "value": [
+              0,
+              0,
+              0,
               0,
               0,
               0
@@ -29,6 +36,8 @@
             "name": "errors",
             "value": [
               0,
+              0,
+              0,
               0
             ],
             "units": "ms"
@@ -36,6 +45,9 @@
           {
             "name": "expand-prefix",
             "value": [
+              0,
+              0,
+              0,
               0,
               0,
               0
@@ -47,6 +59,9 @@
             "value": [
               0,
               0,
+              0,
+              0,
+              0,
               0
             ],
             "units": "ms"
@@ -56,6 +71,9 @@
             "value": [
               0,
               0,
+              0,
+              0,
+              0,
               0
             ],
             "units": "ms"
@@ -63,6 +81,10 @@
           {
             "name": "type-enclosing",
             "value": [
+              0,
+              0,
+              0,
+              0,
               0,
               0,
               0,
