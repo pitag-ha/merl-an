@@ -35,7 +35,7 @@ let performance_term =
   in
   Term.(
     const (analyze ~backend)
-    $ Args.cache_workflow $ Args.repeats_per_sample  $ Args.merlin
+    $ Args.cache_workflow $ Args.repeats_per_sample $ Args.merlin
     $ Args.proj_dirs $ Args.dir_name $ Args.sample_size $ Args.query_types
     $ Args.extensions)
 
@@ -58,8 +58,7 @@ let behavior =
       }
     in
     let backend = Merl_an.Backend.behavior config in
-    analyze ~backend
-      (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed)
+    analyze ~backend (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed)
       (`Repeats 1)
   in
   let pre_term = Term.(const f $ Args.no_full $ Args.no_distilled_data) in
@@ -88,11 +87,9 @@ let benchmark =
   let regression_term =
     Term.(
       const
-        (analyze ~backend
-           (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed))
-      $ Args.repeats_per_sample
-      $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
-      $ Args.query_types $ Args.extensions)
+        (analyze ~backend (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed))
+      $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dirs $ Args.dir_name
+      $ Args.sample_size $ Args.query_types $ Args.extensions)
   in
   let info =
     let doc = "TODO" in
