@@ -493,7 +493,7 @@ module Benchmark = struct
 
   let update_analysis_data ~id ~responses ~cmd ~file:_file
       ~loc:(_loc : Import.location) ~query_type tables =
-    let max_timing, _timings, responses =
+    let _max_timing, timings, responses =
       (* FIXME: add json struture to the two lists *)
       let rec loop ~max_timing ~responses ~timings = function
         | [] -> (max_timing, timings, responses)
@@ -515,7 +515,7 @@ module Benchmark = struct
     let metric =
       {
         Benchmark_metric.name = Merlin.Query_type.to_string query_type;
-        value = [ max_timing ];
+        value = timings;
         units = "ms";
       }
     in
