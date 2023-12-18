@@ -76,7 +76,8 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~init_cache ~merlin ~repeats ~update { samples; file; query_type } =
+let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers:_
+    { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
     Error

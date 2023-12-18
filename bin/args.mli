@@ -47,3 +47,6 @@ val no_distilled_data : [> `No_distilled_data of bool ] Term.t
     the Merlin response of each query will be dumped: Dump whether the return
     class of the response is a [return] containing a message, a return
     containing a JSON, a [failure], an [error], or an [exception]. *)
+
+val filter_outliers : [> `Filter_outliers of bool ] Term.t
+(** Filters outliers from merlin responses. *)

@@ -11,14 +11,15 @@ let man =
        dumped into json-line files.";
   ]
 
-let analyze ~backend (`Cache cache_workflow) (`Repeats repeats)
-    (`Merlin merlin_path) (`Proj_dirs proj_dirs) (`Dir_name data_dir)
-    (`Sample_size sample_size) (`Query_types query_types)
+let analyze ~backend (`Filter_outliers filter_outliers) (`Cache cache_workflow)
+    (`Repeats repeats) (`Merlin merlin_path) (`Proj_dirs proj_dirs)
+    (`Dir_name data_dir) (`Sample_size sample_size) (`Query_types query_types)
     (`Extensions extensions) =
   Printexc.record_backtrace true;
   match
     Merl_an.Workflows.analyze ~backend ~repeats ~cache_workflow ~merlin_path
-      ~proj_dirs ~data_dir ~sample_size ~query_types ~extensions
+      ~proj_dirs ~data_dir ~sample_size ~query_types ~filter_outliers
+      ~extensions
   with
   | Ok () -> ()
   | Error (`Msg err) ->
@@ -34,7 +35,7 @@ let performance_term =
     (module Merl_an.Backend.Performance : Merl_an.Backend.Data_tables)
   in
   Term.(
-    const (analyze ~backend)
+    const (analyze ~backend (`Filter_outliers true))
     $ Args.cache_workflow $ Args.repeats_per_sample $ Args.merlin
     $ Args.proj_dirs $ Args.dir_name $ Args.sample_size $ Args.query_types
     $ Args.extensions)
@@ -58,8 +59,8 @@ let behavior =
       }
     in
     let backend = Merl_an.Backend.behavior config in
-    analyze ~backend (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed)
-      (`Repeats 1)
+    analyze ~backend (`Filter_outliers true)
+      (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed) (`Repeats 1)
   in
   let pre_term = Term.(const f $ Args.no_full $ Args.no_distilled_data) in
   let behavior_term =
@@ -87,7 +88,8 @@ let benchmark =
   let regression_term =
     Term.(
       const
-        (analyze ~backend (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed))
+        (analyze ~backend (`Filter_outliers true)
+           (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed))
       $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dirs $ Args.dir_name
       $ Args.sample_size $ Args.query_types $ Args.extensions)
   in

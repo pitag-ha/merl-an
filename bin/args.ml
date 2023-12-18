@@ -116,3 +116,9 @@ let no_distilled_data =
   named
     (fun x -> `No_distilled_data x)
     Arg.(value & opt bool false & info [ "no-distilled-data" ] ~doc)
+
+let filter_outliers =
+  let doc = "Filter outliers from Merlin responses." in
+  named
+    (fun x -> `Filter_outliers x)
+    Arg.(value & opt bool false & info [ "filter-outliers" ] ~doc)
