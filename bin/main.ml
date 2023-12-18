@@ -87,9 +87,9 @@ let benchmark =
   in
   let regression_term =
     Term.(
-      const
-        (analyze ~backend (`Filter_outliers false)
-           (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed))
+      const (analyze ~backend)
+      $ Args.filter_outliers
+      $ const (`Cache Merl_an.Merlin.Cache_workflow.Buffer_typed)
       $ Args.repeats_per_sample $ Args.merlin $ Args.proj_dirs $ Args.dir_name
       $ Args.sample_size $ Args.query_types $ Args.extensions)
   in

@@ -109,7 +109,9 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
             in
             filter dropped_init
           in
-          let responses = if filter_outliers then fltr_outliers responses else responses in
+          let responses =
+            if filter_outliers then fltr_outliers responses else responses
+          in
           update { Data.id; responses; cmd; file; loc; query_type };
           loop rest
     in
