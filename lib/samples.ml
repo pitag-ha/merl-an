@@ -106,7 +106,7 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
               | [] -> []
               | x :: [] -> [ x ]
               | x :: y :: tl as lst ->
-                  if get_timing x > 5 * get_timing y then lst else y :: tl
+                  if get_timing x > 5 * get_timing y then y :: tl else lst
             in
             filter sorted
           in
