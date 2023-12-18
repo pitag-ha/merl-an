@@ -101,13 +101,12 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
             let sorted =
               List.sort (fun x y -> get_timing x - get_timing y) dropped_init
             in
-            let rec filter responses =
+            let filter responses =
               match responses with
               | [] -> []
               | x :: [] -> [ x ]
-              | x :: y :: tl ->
-                  if get_timing x > 5 * get_timing y then x :: filter (y :: tl)
-                  else filter (y :: tl)
+              | x :: y :: tl as lst ->
+                  if get_timing x > 5 * get_timing y then lst else y :: tl
             in
             filter sorted
           in
