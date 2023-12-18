@@ -35,10 +35,10 @@ let performance_term =
     (module Merl_an.Backend.Performance : Merl_an.Backend.Data_tables)
   in
   Term.(
-    const (analyze ~backend (`Filter_outliers false))
-    $ Args.cache_workflow $ Args.repeats_per_sample $ Args.merlin
-    $ Args.proj_dirs $ Args.dir_name $ Args.sample_size $ Args.query_types
-    $ Args.extensions)
+    const (analyze ~backend)
+    $ Args.filter_outliers $ Args.cache_workflow $ Args.repeats_per_sample
+    $ Args.merlin $ Args.proj_dirs $ Args.dir_name $ Args.sample_size
+    $ Args.query_types $ Args.extensions)
 
 let performance =
   let info =
