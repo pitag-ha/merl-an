@@ -95,10 +95,12 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
           let* responses = Merlin.Cmd.run ~repeats cmd in
           let fltr_outliers responses =
             let open Merlin.Response in
-            let sorted =
-              List.sort (fun x y -> get_timing x - get_timing y) responses
+            let dropped_init =
+              if init_cache then List.tl responses else responses
             in
-            let dropped_init = if init_cache then List.tl sorted else sorted in
+            let sorted =
+              List.sort (fun x y -> get_timing x - get_timing y) dropped_init
+            in
             let rec filter responses =
               match responses with
               | [] -> []
@@ -107,7 +109,7 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
                   if get_timing x > 5 * get_timing y then x :: filter (y :: tl)
                   else filter (y :: tl)
             in
-            filter dropped_init
+            filter sorted
           in
           let responses =
             if filter_outliers then fltr_outliers responses else responses
