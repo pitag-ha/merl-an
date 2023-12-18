@@ -76,7 +76,7 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers:_
+let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
     { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
@@ -93,6 +93,23 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers:_
       | { id; sample = loc, li } :: rest ->
           let* cmd = Merlin.Cmd.make ~query_type ~file ?li ~loc merlin in
           let* responses = Merlin.Cmd.run ~repeats cmd in
+          let fltr_outliers responses =
+            let open Merlin.Response in
+            let sorted =
+              List.sort (fun x y -> get_timing x - get_timing y) responses
+            in
+            let dropped_init = if init_cache then List.tl sorted else sorted in
+            let rec filter responses =
+              match responses with
+              | [] -> []
+              | x :: [] -> [ x ]
+              | x :: y :: tl ->
+                  if get_timing x > 5 * get_timing y then x :: filter (y :: tl)
+                  else filter (y :: tl)
+            in
+            filter dropped_init
+          in
+          let responses = if filter_outliers then fltr_outliers responses else responses in
           update { Data.id; responses; cmd; file; loc; query_type };
           loop rest
     in
