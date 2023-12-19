@@ -121,4 +121,4 @@ let filter_outliers =
   let doc = "Filter outliers from Merlin responses." in
   named
     (fun x -> `Filter_outliers x)
-    Arg.(value & opt bool false & info [ "filter-outliers" ] ~doc)
+    Arg.(value & flag & info [ "filter-outliers" ] ~doc)
