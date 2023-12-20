@@ -108,11 +108,11 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
               | [] -> []
               | x :: [] -> [ x ]
               | x :: y :: tl as lst ->
-                if get_timing x > 5 * get_timing y then y :: tl else lst
+                  if get_timing x > 5 * get_timing y then y :: tl else lst
             in
 
             if init_cache then filter sorted
-            (* We bring back dropped init response *)
+              (* We bring back dropped init response *)
             else List.hd responses :: filter sorted
           in
           let responses =
