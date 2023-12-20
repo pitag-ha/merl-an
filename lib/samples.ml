@@ -95,8 +95,10 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
           let* responses = Merlin.Cmd.run ~repeats cmd in
           let fltr_outliers responses =
             let open Merlin.Response in
+            (* If init_cache is false, then we don't want to filter the first response as it
+               will be ran on cold cache. We don't count it as an outlier. *)
             let dropped_init =
-              if init_cache then List.tl responses else responses
+              if init_cache then responses else List.tl responses
             in
             let sorted =
               List.sort (fun x y -> get_timing x - get_timing y) dropped_init
@@ -106,9 +108,12 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
               | [] -> []
               | x :: [] -> [ x ]
               | x :: y :: tl as lst ->
-                  if get_timing x > 5 * get_timing y then y :: tl else lst
+                if get_timing x > 5 * get_timing y then y :: tl else lst
             in
-            filter sorted
+
+            if init_cache then filter sorted
+            (* We bring back dropped init response *)
+            else List.hd responses :: filter sorted
           in
           let responses =
             if filter_outliers then fltr_outliers responses else responses
