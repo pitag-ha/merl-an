@@ -104,9 +104,7 @@ let repeats_per_sample =
 
 let no_full =
   let doc = "Don't dump the full Merlin response." in
-  named
-    (fun x -> `No_full x)
-    Arg.(value & flag & info [ "no-full" ] ~doc)
+  named (fun x -> `No_full x) Arg.(value & flag & info [ "no-full" ] ~doc)
 
 let no_distilled_data =
   let doc =
