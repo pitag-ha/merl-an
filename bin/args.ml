@@ -106,7 +106,7 @@ let no_full =
   let doc = "Don't dump the full Merlin response." in
   named
     (fun x -> `No_full x)
-    Arg.(value & opt bool false & info [ "no-full" ] ~doc)
+    Arg.(value & flag & info [ "no-full" ] ~doc)
 
 let no_distilled_data =
   let doc =
@@ -115,4 +115,4 @@ let no_distilled_data =
   in
   named
     (fun x -> `No_distilled_data x)
-    Arg.(value & opt bool false & info [ "no-distilled-data" ] ~doc)
+    Arg.(value & flag & info [ "no-distilled-data" ] ~doc)
