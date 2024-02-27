@@ -113,7 +113,7 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = pkgs.lib.attrValues packages;
             buildInputs = with pkgs.ocamlPackages; [
-              pkgs.ocamlformat_0_24_1
+              pkgs.ocamlformat_0_26_1
               cb-check
               ocaml-lsp
               pkgs.jq
