@@ -17,7 +17,7 @@
 (package
  (name merl-an)
  (synopsis "Tool for merlin performance analysis")
- (description "Merl-an generates queries to test merlin performance, executes them and gathers the results.")
+ (description "Merl-an generates queries to analyze merlin performance and behavior, executes them and gathers the results.")
  (depends
   ocaml
   dune
@@ -31,5 +31,4 @@
   ppx_fields_conv
   (ppx_yojson_conv (<= v0.15.1))
   ptime
-  (ocamlformat :with-dev-setup)
-  (ocp-indent :with-dev-setup)))
+  (ocamlformat (and :with-dev-setup (= 0.26.1)))))

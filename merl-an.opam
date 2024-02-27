@@ -2,7 +2,7 @@
 opam-version: "2.0"
 synopsis: "Tool for merlin performance analysis"
 description:
-  "Merl-an generates queries to test merlin performance, executes them and gathers the results."
+  "Merl-an generates queries to analyze merlin performance and behavior, executes them and gathers the results."
 maintainer: ["Sonja Heinze"]
 authors: ["Sonja Heinze" "Rafał Gwoździński"]
 license: "MIT"
@@ -21,8 +21,7 @@ depends: [
   "ppx_fields_conv"
   "ppx_yojson_conv" {<= "v0.15.1"}
   "ptime"
-  "ocamlformat" {with-dev-setup}
-  "ocp-indent" {with-dev-setup}
+  "ocamlformat" {with-dev-setup & = "0.26.1"}
   "odoc" {with-doc}
 ]
 build: [
