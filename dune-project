@@ -30,4 +30,6 @@
   ppx_enumerate
   ppx_fields_conv
   (ppx_yojson_conv (<= v0.15.1))
-  ptime))
+  ptime
+  (ocamlformat :with-dev-setup)
+  (ocp-indent :with-dev-setup)))
