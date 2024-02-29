@@ -34,18 +34,10 @@ jobs:
           dune-cache: ${{ matrix.os == 'ubuntu-latest' }}
 
       - name: Install opam packages
-        run: opam install --deps-only .
+        run: opam install --deps-only  --with-test .
 
       - name: Run build
         run: opam exec -- dune build
-
-      - name: Install merlin
-        run: |
-          opam pin merlin-lib git+https://github.com/pitag-ha/merlin#add-query-num-414
-          opam pin merlin git+https://github.com/pitag-ha/merlin#add-query-num-414
-
-      - name: Install cb-check
-        run: opam pin -y cb-check https://github.com/ocurrent/current-bench.git
 
       - name: Run tests
         run: opam exec -- dune test
@@ -69,7 +61,7 @@ jobs:
           dune-cache: true
 
       - name: Install ocamlformat
-        run: opam install ocamlformat=$(awk -F = '/^version=/{print $2}' .ocamlformat)
+        run: opam install . --deps-only --with-dev-setup
 
       - name: dune fmt
         run: opam exec -- dune fmt
