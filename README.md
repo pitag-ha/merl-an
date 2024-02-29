@@ -12,10 +12,9 @@ switch and manually adding the dependency to Merlin:
 
 ```shell
 # opam update
-# opam switch create --empty . --deps-only -y
+# opam switch create . --deps-only --with-doc --with-test --with-dev-setup -y
 # eval $(opam env)
 
-# opam pin add https://github.com/ocaml/merlin.git
 # opam install . --deps-only --with-doc --with-test --with-dev-setup -y
 # dune build
 ```
