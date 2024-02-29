@@ -32,6 +32,7 @@
   (ppx_yojson_conv (<= v0.15.1))
   ptime
   merlin-lib
+  dot-merlin-reader
   merlin
   cb-check
   (ocamlformat (and :with-dev-setup (= 0.24.1)))))

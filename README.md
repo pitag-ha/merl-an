@@ -11,11 +11,9 @@ Since **merl-an** streamlines Merlin's main trunk, we recommend building a local
 switch and manually adding the dependency to Merlin:
 
 ```shell
-# opam update
-# opam switch create . --deps-only --with-doc --with-test --with-dev-setup -y
-# eval $(opam env)
-
-# opam install . --deps-only --with-doc --with-test --with-dev-setup -y
-# dune build
+opam update
+opam switch create . --deps-only --with-doc --with-test --with-dev-setup -y
+eval $(opam env)
+dune build
 ```
 
