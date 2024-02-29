@@ -31,4 +31,7 @@
   ppx_fields_conv
   (ppx_yojson_conv (<= v0.15.1))
   ptime
-  (ocamlformat (and :with-dev-setup (= 0.26.1)))))
+  merlin-lib
+  merlin
+  cb-check
+  (ocamlformat (and :with-dev-setup (= 0.24.1)))))
