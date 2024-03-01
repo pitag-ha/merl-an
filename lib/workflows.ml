@@ -2,7 +2,7 @@ open! Import
 
 let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
     ~cache_workflow ~merlin_path ~proj_dirs ~data_dir ~sample_size ~query_types
-    ~extensions =
+    ~filter_outliers ~extensions =
   let merlin_path = Fpath.v merlin_path in
   let merlin = Merlin.make merlin_path cache_workflow in
   let proj_path dir = Fpath.v @@ dir in
@@ -65,7 +65,8 @@ let analyze ~backend:(module Backend : Backend.Data_tables) ~repeats
           id_counter
       | Some (samples, new_id_counter) -> (
           match
-            Samples.analyze ~init_cache ~merlin ~repeats ~update samples
+            Samples.analyze ~init_cache ~merlin ~repeats ~update
+              ~filter_outliers samples
           with
           | Ok () -> new_id_counter
           | Error log ->

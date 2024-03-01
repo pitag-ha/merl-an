@@ -76,7 +76,8 @@ let generate ~sample_size ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + sample_size)
 
-let analyze ~init_cache ~merlin ~repeats ~update { samples; file; query_type } =
+let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
+    { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
     Error
@@ -92,6 +93,31 @@ let analyze ~init_cache ~merlin ~repeats ~update { samples; file; query_type } =
       | { id; sample = loc, li } :: rest ->
           let* cmd = Merlin.Cmd.make ~query_type ~file ?li ~loc merlin in
           let* responses = Merlin.Cmd.run ~repeats cmd in
+          let fltr_outliers responses =
+            let open Merlin.Response in
+            (* If init_cache is false, then we don't want to filter the first response as it
+               will be ran on cold cache. We don't count it as an outlier. *)
+            let dropped_init =
+              if init_cache then responses else List.tl responses
+            in
+            let sorted =
+              List.sort (fun x y -> get_timing x - get_timing y) dropped_init
+            in
+            let filter responses =
+              match responses with
+              | [] -> []
+              | x :: [] -> [ x ]
+              | x :: y :: tl as lst ->
+                  if get_timing x > 5 * get_timing y then y :: tl else lst
+            in
+
+            if init_cache then filter sorted
+              (* We bring back dropped init response *)
+            else List.hd responses :: filter sorted
+          in
+          let responses =
+            if filter_outliers then fltr_outliers responses else responses
+          in
           update { Data.id; responses; cmd; file; loc; query_type };
           loop rest
     in

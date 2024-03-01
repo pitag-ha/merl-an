@@ -9,5 +9,6 @@ val analyze :
   data_dir:string option ->
   sample_size:int ->
   query_types:Merlin.Query_type.t list ->
+  filter_outliers:bool ->
   extensions:string list ->
   (unit, Rresult.R.msg) Result.t
