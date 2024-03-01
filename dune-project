@@ -33,6 +33,6 @@
   ptime
   merlin-lib
   dot-merlin-reader
-  merlin
-  cb-check
+  (merlin :with-test)
+  (cb-check :with-test)
   (ocamlformat (and :with-dev-setup (= 0.24.1)))))
