@@ -1,0 +1,6 @@
+pin-depends: [
+  ["merlin-lib.dev" "git+https://github.com/pitag-ha/merlin#add-query-num-414"]
+  ["dot-merlin-reader.dev" "git+https://github.com/pitag-ha/merlin#add-query-num-414"]
+  ["merlin.dev" "git+https://github.com/pitag-ha/merlin#add-query-num-414"]
+  ["cb-check.dev" "git+https://github.com/ocurrent/current-bench.git"]
+]

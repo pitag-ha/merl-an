@@ -178,24 +178,19 @@ module Response = struct
           "Error while cropping merlin response: reponse should have a key \
            called value."
 
-  (* FIXME: Could be more readable. *)
   let strip_file = function
     | `Assoc l ->
-        `Assoc
-          (List.map
-             (function
-               | "value", `Assoc v ->
-                   ( "value",
-                     `Assoc
-                       (List.map
-                          (function
-                            | "file", `String f ->
-                                let base = Stdlib.Filename.basename f in
-                                ("file", `String base)
-                            | other -> other)
-                          v) )
-               | other -> other)
-             l)
+        let map_filename = function
+          | "file", `String f ->
+              let base = Stdlib.Filename.basename f in
+              ("file", `String base)
+          | other -> other
+        in
+        let map_value_assoc = function
+          | "value", `Assoc v -> ("value", `Assoc (List.map map_filename v))
+          | other -> other
+        in
+        `Assoc (List.map map_value_assoc l)
     | other -> other
 
   let get_return_class = function
@@ -247,53 +242,47 @@ module Cmd = struct
     let* query_cmd =
       match query_type with
       | Query_type.Locate ->
-          let* loc = retrieve_loc ~query_type loc in
-          Result.ok
-          @@ Format.asprintf
-               " %a %s -look-for ml -position '%a' -filename %a < %a" basic_cmd
-               merlin
-               (Query_type.to_string query_type)
-               (Location.print_edge Right)
-               loc File.pp file File.pp file
+          let+ loc = retrieve_loc ~query_type loc in
+          Format.asprintf " %a %s -look-for ml -position '%a' -filename %a < %a"
+            basic_cmd merlin
+            (Query_type.to_string query_type)
+            (Location.print_edge Right)
+            loc File.pp file File.pp file
       | Case_analysis ->
-          let* loc = retrieve_loc ~query_type loc in
-          Result.ok
-          @@ Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a"
-               basic_cmd merlin
-               (Query_type.to_string query_type)
-               (Location.print_edge Left) loc
-               (Location.print_edge Right)
-               loc File.pp file File.pp file
+          let+ loc = retrieve_loc ~query_type loc in
+          Format.asprintf "%a %s -start '%a' -end '%a' -filename %a < %a"
+            basic_cmd merlin
+            (Query_type.to_string query_type)
+            (Location.print_edge Left) loc
+            (Location.print_edge Right)
+            loc File.pp file File.pp file
       | Type_enclosing ->
-          let* loc = retrieve_loc ~query_type loc in
-          Result.ok
-          @@ Format.asprintf "%a %s -position '%a' -index 0 -filename %a < %a"
-               basic_cmd merlin
-               (Query_type.to_string query_type)
-               (Location.print_edge Right)
-               loc File.pp file File.pp file
+          let+ loc = retrieve_loc ~query_type loc in
+          Format.asprintf "%a %s -position '%a' -index 0 -filename %a < %a"
+            basic_cmd merlin
+            (Query_type.to_string query_type)
+            (Location.print_edge Right)
+            loc File.pp file File.pp file
       | Occurrences ->
-          let* loc = retrieve_loc ~query_type loc in
-          Result.ok
-          @@ Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a"
-               basic_cmd merlin
-               (Query_type.to_string query_type)
-               (Location.print_edge Right)
-               loc File.pp file File.pp file
+          let+ loc = retrieve_loc ~query_type loc in
+          Format.asprintf "%a %s -identifier-at '%a' -filename %a < %a"
+            basic_cmd merlin
+            (Query_type.to_string query_type)
+            (Location.print_edge Right)
+            loc File.pp file File.pp file
       | Complete_prefix | Expand_prefix -> (
           (* TODO: for expand-prefix, it might be interesting to modify the source code to introduce an error *)
           match li with
           | Some li ->
-              let* loc = retrieve_loc ~query_type loc in
+              let+ loc = retrieve_loc ~query_type loc in
               let first_half s = String.(sub s 0 ((length s / 2) + 1)) in
-              Result.ok
-              @@ Format.asprintf
-                   "%a %s -prefix '%s' -position '%a' -filename %a < %a"
-                   basic_cmd merlin
-                   (Query_type.to_string query_type)
-                   (first_half @@ Longident.name li)
-                   (Location.print_edge Right)
-                   loc File.pp file File.pp file
+              Format.asprintf
+                "%a %s -prefix '%s' -position '%a' -filename %a < %a" basic_cmd
+                merlin
+                (Query_type.to_string query_type)
+                (first_half @@ Longident.name li)
+                (Location.print_edge Right)
+                loc File.pp file File.pp file
           | None ->
               Error
                 (Logs.Error
