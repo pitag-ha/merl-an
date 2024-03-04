@@ -176,12 +176,6 @@ module Response = struct
         | _ -> failwith "merlin gave bad output")
     | _ -> failwith "merlin gave bad output"
 
-  let crop_timing answer = crop_arbitrary_keys [ "timing" ] answer
-  let crop_value answer = crop_arbitrary_keys [ "value" ] answer
-
-  let crop_heap_and_cache answer =
-    crop_arbitrary_keys [ "cache"; "heap_mbytes" ] answer
-
   let strip_file = function
     | `Assoc l ->
         let map_filename = function

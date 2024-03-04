@@ -276,8 +276,7 @@ module Performance = struct
       (* TODO: make a cli-argument out of this instead of doing this always *)
       let responses =
         List.map
-          (fun resp ->
-            Merlin.Response.(crop_value @@ crop_heap_and_cache @@ resp))
+          (fun resp -> Merlin.Response.(crop_arbitrary_keys [ "value" ] resp))
           responses
       in
       { Query_response.sample_id = id; cmd; responses }
@@ -387,8 +386,7 @@ let behavior config =
                    List.map
                      (fun resp ->
                        Merlin.Response.(
-                         strip_file @@ crop_timing @@ crop_heap_and_cache
-                         @@ resp))
+                         strip_file @@ crop_arbitrary_keys [ "timing" ] resp))
                      responses
                  in
                  { Query_response.sample_id = id; cmd; responses }
@@ -515,7 +513,9 @@ module Benchmark = struct
     in
     let resp =
       (* TODO: make a cli-argument out of this instead of doing this always *)
-      let responses = List.map Merlin.Response.crop_value responses in
+      let responses =
+        List.map (Merlin.Response.crop_arbitrary_keys [ "value" ]) responses
+      in
       { Query_response.sample_id = id; cmd; responses }
     in
     let cmd = { Command.sample_id = id; cmd } in
