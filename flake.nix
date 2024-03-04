@@ -9,7 +9,7 @@
   # We're using custom merlin from Sonja's branch.
   # It's an old fork without flake.nix, thus we build it the hard way.
   inputs.merlin-repository = {
-    url = "github:pitag-ha/merlin/add-query-num-414";
+    url = "github:ocaml/merlin/3488e072f121cf021f25603e5c08c6d1199b588d";
     flake = false;
   };
 
