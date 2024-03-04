@@ -386,7 +386,10 @@ let behavior config =
                    List.map
                      (fun resp ->
                        Merlin.Response.(
-                         strip_file @@ crop_arbitrary_keys [ "timing" ] resp))
+                         strip_file
+                         @@ crop_arbitrary_keys
+                              [ "timing"; "cache"; "heap_mbytes" ]
+                              resp))
                      responses
                  in
                  { Query_response.sample_id = id; cmd; responses }
