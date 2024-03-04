@@ -152,6 +152,20 @@ module Response = struct
 
   let yojson_of_t x = x
 
+  let crop_arbitrary_keys keys = function
+    | `Assoc answer ->
+        let cropped_answer =
+          List.fold_left
+            (fun answer key -> List.remove_assoc key answer)
+            answer keys
+        in
+        `Assoc cropped_answer
+    | _ ->
+        (* Fixme *)
+        failwith
+          "Error while cropping merlin response: reponse should be an \
+           association list."
+
   let get_timing = function
     | `Assoc answer -> (
         match List.assoc "timing" answer with
@@ -161,22 +175,6 @@ module Response = struct
             | _ -> failwith "merlin gave bad output")
         | _ -> failwith "merlin gave bad output")
     | _ -> failwith "merlin gave bad output"
-
-  let crop_timing = function
-    | `Assoc answer -> `Assoc (List.remove_assoc "timing" answer)
-    | _ ->
-        (* Fixme *)
-        failwith
-          "Error while cropping merlin response: reponse should have a key \
-           called timing."
-
-  let crop_value = function
-    | `Assoc answer -> `Assoc (List.remove_assoc "value" answer)
-    | _ ->
-        (* Fixme *)
-        failwith
-          "Error while cropping merlin response: reponse should have a key \
-           called value."
 
   let strip_file = function
     | `Assoc l ->

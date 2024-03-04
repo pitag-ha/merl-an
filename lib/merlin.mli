@@ -83,13 +83,9 @@ module Response : sig
   (** Extracts the information about time consumption from an [ocamlmerlin]
       response *)
 
-  val crop_timing : t -> t
-  (** Removes the timing field from the merlin responce. Usefule when you want
-      pure data, e.g. for regression testing. *)
-
-  val crop_value : t -> t
-  (** Removes the value field from the merlin response, i.e. the actual response
-      to the query. *)
+  val crop_arbitrary_keys : string list -> t -> t
+  (** [crop_arbitrary_keys keys x] Removes the various [keys] passed from the
+      result. *)
 
   val strip_file : t -> t
   (** In a Merlin response of the form [{"value":{"file":file_dir, ...}, ...}],
