@@ -209,6 +209,30 @@ module Response = struct
              "Error while extracting return classe: Response should have key \
               called class")
 
+  let obfuscate_location subject =
+    let pattern = Str.regexp "line [0-9]+, characters [0-9]+-[0-9]+" in
+    Str.global_replace pattern "line **, characters **-**" subject
+
+  let strip_location = function
+    | `Assoc answer -> (
+        match List.assoc "class" answer with
+        | `String "exception" ->
+            let new_answer =
+              List.map
+                (function
+                  | "value", `String stacktrace ->
+                      ("value", `String (obfuscate_location stacktrace))
+                  | x -> x)
+                answer
+            in
+            `Assoc new_answer
+        | _ -> `Assoc answer)
+    | _ ->
+        (* Fixme *)
+        failwith
+          "Error while cropping merlin response: reponse should be an \
+           association list."
+
   let get_query_num = function
     | `Assoc answer -> (
         match List.assoc_opt "query_num" answer with

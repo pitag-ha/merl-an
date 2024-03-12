@@ -92,6 +92,9 @@ module Response : sig
       where [file_dir] is a qualified file name, this strips off the directory
       from [file_dir], keeping only its file base name.*)
 
+  val strip_location : t -> t
+  (** Strip the location in a Merlin response of class [Exception]. *)
+
   val get_return_class : t -> (return_class, Logs.t) result
   val get_query_num : t -> (int, Logs.t) result
 end
