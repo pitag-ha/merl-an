@@ -9,7 +9,7 @@
   # We're using custom merlin from Sonja's branch.
   # It's an old fork without flake.nix, thus we build it the hard way.
   inputs.merlin-repository = {
-    url = "github:ocaml/merlin/master";
+    url = "github:ocaml/merlin/main";
     flake = false;
   };
 
