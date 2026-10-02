@@ -33,7 +33,7 @@ let analyze ~backend (`Filter_outliers filter_outliers) (`Cache cache_workflow)
 
 let performance_term =
   let backend =
-    (module Merl_an.Backend.Performance : Merl_an.Backend.Data_tables)
+    (module Merl_an.Backend.Performance : Merl_an.Backend.Data_channels)
   in
   Term.(
     const (analyze ~backend)
@@ -85,7 +85,7 @@ let behavior =
 
 let benchmark =
   let backend =
-    (module Merl_an.Backend.Benchmark : Merl_an.Backend.Data_tables)
+    (module Merl_an.Backend.Benchmark : Merl_an.Backend.Data_channels)
   in
   let regression_term =
     Term.(
