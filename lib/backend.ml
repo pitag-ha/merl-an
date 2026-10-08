@@ -59,7 +59,7 @@ module Field = struct
       ~finally:(fun () -> close_out_noerr oc)
       (fun () ->
         let ppf = Format.formatter_of_out_channel oc in
-        write_json_lines ~pp ~ppf table_content)
+        write_json_lines ~pp ~ppf (List.rev table_content))
 
   let dump_opt pp dump_dir tables field =
     let write_json_lines ~pp ~ppf l =
@@ -74,7 +74,7 @@ module Field = struct
           ~finally:(fun () -> close_out_noerr oc)
           (fun () ->
             let ppf = Format.formatter_of_out_channel oc in
-            write_json_lines ~pp ~ppf content)
+            write_json_lines ~pp ~ppf (List.rev content))
     | None -> ()
 end
 
