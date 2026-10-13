@@ -415,10 +415,11 @@ let behavior config =
               let query_num =
                 opt_and_log (Merlin.Response.get_query_num resp)
               in
-              let new_entry =
-                { Distilled_data.sample_id = id; return; query_num; cmd }
-              in
-              tables.distilled_data <- Some (new_entry :: rc)
+              if Option.is_some return || Option.is_some query_num then
+                let new_entry =
+                  { Distilled_data.sample_id = id; return; query_num; cmd }
+                in
+                tables.distilled_data <- Some (new_entry :: rc)
           | _ -> (*FIXME*) ())
 
     let create_initial _merlin =
