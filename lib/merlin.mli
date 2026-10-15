@@ -120,17 +120,20 @@ module Cmd : sig
       the query, i.e. the source code [file] and the location [loc] inside that
       file; and a [Merlin.t] value [merlin] *)
 
-  val run : repeats:int -> t -> (Response.t list, Logs.t) Result.t
+  val run :
+    ?verbose:bool -> repeats:int -> t -> (Response.t list, Logs.t) Result.t
   (** [run ~repeats cmd] runs the concrete [ocamlmerlin] command [cmd]. It runs
-      that command [repeat] times in a row and returns the [repeats] responses
+      that command [repeat] times in a row and returns the [repeats] responses.
+      If [verbose] is true, the command is printed on stdout before it is run.
   *)
 end
 with type merlin := t
 
-val init_cache : File.t -> t -> (unit, Logs.t) Result.t
+val init_cache : ?verbose:bool -> File.t -> t -> (unit, Logs.t) Result.t
 (** [init_cache file merlin] inits the [merlin] cache on [file]. This should be
     called if one of the frontends is [Server]. It inits the cache by running a
-    global command on the file. *)
+    global command on the file. If [verbose] is true, the command is printed on
+    stdout before it is run. *)
 
 val stop_server : t -> unit
 (** Stops the [ocamlmerlin] server. This should be called at the end of the

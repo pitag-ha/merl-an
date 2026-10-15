@@ -13,4 +13,5 @@ val analyze :
   filter_outliers:bool ->
   extensions:string list ->
   force_yes:bool ->
+  verbose:bool ->
   (unit, Rresult.R.msg) Result.t

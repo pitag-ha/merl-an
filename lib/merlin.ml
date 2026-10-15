@@ -352,7 +352,8 @@ module Cmd = struct
     let repl = untimed_query_json cmd in
     repl
 
-  let run ~repeats cmd =
+  let run ?(verbose = false) ~repeats cmd =
+    if verbose then Format.printf "%s\n%!" cmd;
     try
       let rec loop responses = function
         | 0 -> responses
@@ -364,8 +365,9 @@ module Cmd = struct
     with exc -> Error (Logs.Error (Printexc.to_string exc))
 end
 
-let init_cache file merlin =
+let init_cache ?(verbose = false) file merlin =
   let cmd = Cmd.some_global_cmd file merlin in
+  if verbose then Format.printf "cache warmup: %s\n%!" cmd;
   try
     let _ = Cmd.run_once cmd in
     Ok ()

@@ -23,6 +23,7 @@ val analyze :
   repeats:int ->
   update:(Data.sample -> unit) ->
   filter_outliers:bool ->
+  verbose:bool ->
   t ->
   (unit, Logs.t) Result.t
 (** [analyze ~merlin ~repeats data samples] appends new analysis data to [data].

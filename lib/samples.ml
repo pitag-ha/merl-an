@@ -77,7 +77,7 @@ let generate ~per_file_samples ~id_counter file query_type =
       in
       Some ({ samples; file; query_type }, id_counter + per_file_samples)
 
-let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
+let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers ~verbose
     { samples; file; query_type } =
   let open Result.Syntax in
   if List.is_empty samples then
@@ -87,13 +87,15 @@ let analyze ~init_cache ~merlin ~repeats ~update ~filter_outliers
             (Yojson.Safe.to_string @@ File.yojson_of_t file)
             (Merlin.Query_type.to_string query_type)))
   else
-    let* () = if init_cache then Merlin.init_cache file merlin else Ok () in
+    let* () =
+      if init_cache then Merlin.init_cache ~verbose file merlin else Ok ()
+    in
     let rec loop samples =
       match samples with
       | [] -> Ok ()
       | { id; sample = loc, li } :: rest ->
           let* cmd = Merlin.Cmd.make ~query_type ~file ?li ~loc merlin in
-          let* responses = Merlin.Cmd.run ~repeats cmd in
+          let* responses = Merlin.Cmd.run ~verbose ~repeats cmd in
           let fltr_outliers responses =
             let open Merlin.Response in
             (* If init_cache is false, then we don't want to filter the first response as it
