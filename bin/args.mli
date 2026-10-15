@@ -55,3 +55,6 @@ val no_distilled_data : [> `No_distilled_data of bool ] Term.t
 
 val filter_outliers : [> `Filter_outliers of bool ] Term.t
 (** Filters outliers from merlin responses. *)
+
+val verbose : [> `Verbose of bool ] Term.t
+(** Print the commands on stdout before they are run. *)

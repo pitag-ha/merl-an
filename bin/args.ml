@@ -135,3 +135,7 @@ let filter_outliers =
   named
     (fun x -> `Filter_outliers x)
     Arg.(value & flag & info [ "filter-outliers" ] ~doc)
+
+let verbose =
+  let doc = "Print the commands on stdout before they are run." in
+  named (fun x -> `Verbose x) Arg.(value & flag & info [ "verbose"; "v" ] ~doc)
