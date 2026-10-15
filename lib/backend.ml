@@ -379,69 +379,47 @@ let behavior config =
       let command = { Command.sample_id = id; cmd } in
       tables.commands <- command :: tables.commands;
       let () =
-        match tables.full_responses with
-        | None -> ()
-        | Some fr ->
-            tables.full_responses <-
-              (let resp =
-                 let responses =
-                   List.map
-                     (fun resp ->
-                       Merlin.Response.(
-                         strip_file
-                         @@ crop_arbitrary_keys
-                              [ "timing"; "cache"; "heap_mbytes" ]
-                         @@ strip_location @@ resp))
-                     responses
-                 in
-                 { Query_response.sample_id = id; cmd; responses }
-               in
-               Some (resp :: fr))
+        tables.full_responses <-
+          Option.map
+            (fun fr ->
+              let responses =
+                List.map
+                  (fun resp ->
+                    Merlin.Response.(
+                      strip_file
+                      @@ crop_arbitrary_keys
+                           [ "timing"; "cache"; "heap_mbytes" ]
+                      @@ strip_location @@ resp))
+                  responses
+              in
+              let resp = { Query_response.sample_id = id; cmd; responses } in
+              resp :: fr)
+            tables.full_responses
       in
       match tables.distilled_data with
       | None -> ()
       | Some rc -> (
           match responses with
-          | [ resp ] -> (
-              match
-                ( Merlin.Response.get_return_class resp,
-                  Merlin.Response.get_query_num resp )
-              with
-              | Ok return, Ok query_num ->
-                  let new_entry =
-                    {
-                      Distilled_data.sample_id = id;
-                      return = Some return;
-                      query_num = Some query_num;
-                      cmd;
-                    }
-                  in
-                  tables.distilled_data <- Some (new_entry :: rc)
-              | Error log, Ok query_num ->
-                  persist_logs ~log tables;
-                  let new_entry =
-                    {
-                      Distilled_data.sample_id = id;
-                      return = None;
-                      query_num = Some query_num;
-                      cmd;
-                    }
-                  in
-                  tables.distilled_data <- Some (new_entry :: rc)
-              | Ok return, Error log ->
-                  persist_logs ~log tables;
-                  let new_entry =
-                    {
-                      Distilled_data.sample_id = id;
-                      return = Some return;
-                      query_num = None;
-                      cmd;
-                    }
-                  in
-                  tables.distilled_data <- Some (new_entry :: rc)
-              | Error log1, Error log2 ->
-                  persist_logs ~log:log1 tables;
-                  persist_logs ~log:log2 tables)
+          | [ resp ] ->
+              let opt_and_log res =
+                Result.fold
+                  ~ok:(fun rc -> Some rc)
+                  ~error:(fun e ->
+                    persist_logs ~log:e tables;
+                    None)
+                  res
+              in
+              let return =
+                opt_and_log (Merlin.Response.get_return_class resp)
+              in
+              let query_num =
+                opt_and_log (Merlin.Response.get_query_num resp)
+              in
+              if Option.is_some return || Option.is_some query_num then
+                let new_entry =
+                  { Distilled_data.sample_id = id; return; query_num; cmd }
+                in
+                tables.distilled_data <- Some (new_entry :: rc)
           | _ -> (*FIXME*) ())
 
     let create_initial _merlin =
