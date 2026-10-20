@@ -1,8 +1,8 @@
 open! Import
 
-let analyze ~backend:(module Backend : Backend.Data_channels) ~repeats
-    ~cache_workflow ~merlin_path ~proj_dirs ~data_dir ~per_file_samples
-    ~total_samples ~query_types ~filter_outliers ~extensions ~force_yes =
+let analyze ~backend ~repeats ~cache_workflow ~merlin_path ~proj_dirs ~data_dir
+    ~per_file_samples ~total_samples ~query_types ~filter_outliers ~extensions
+    ~force_yes =
   let merlin_path = Fpath.v merlin_path in
   let merlin = Merlin.make merlin_path cache_workflow in
   let proj_path dir = Fpath.v @@ dir in
@@ -42,16 +42,15 @@ let analyze ~backend:(module Backend : Backend.Data_channels) ~repeats
         let make_sample ~id:_ file = file in
         Reservoir.get_samples ~make_sample ~id_counter:1 reservoir
   in
-  let module D = Data.Make (Backend) in
-  let* channels = D.init ~force_yes merlin data_dir in
+  let* channels = Data.init ~backend ~force_yes merlin data_dir in
   Fun.protect
     ~finally:(fun () ->
-      D.wrap_up channels ~proj_paths;
+      Data.wrap_up channels ~proj_paths;
       if Merlin.is_server merlin then Merlin.stop_server merlin else ())
     (fun () ->
-      let init_cache = D.init_cache channels in
+      let init_cache = Data.init_cache channels in
       let stream_query_data id_counter (file, query_type) =
-        let write = D.write channels in
+        let write = Data.write channels in
         if Merlin.Query_type.is_global query_type then
           let () =
             let d =
@@ -60,7 +59,7 @@ let analyze ~backend:(module Backend : Backend.Data_channels) ~repeats
               Ok (cmd, responses)
             in
             match d with
-            | Error log -> D.persist_logs ~log channels
+            | Error log -> Data.persist_logs ~log channels
             | Ok (cmd, responses) ->
                 write
                   {
@@ -84,7 +83,7 @@ let analyze ~backend:(module Backend : Backend.Data_channels) ~repeats
                      "File %s couldn't be parsed and was ignored.\n"
                      (Yojson.Safe.to_string @@ File.yojson_of_t file))
               in
-              D.persist_logs ~log channels;
+              Data.persist_logs ~log channels;
               id_counter
           | Some (samples, new_id_counter) -> (
               match
@@ -93,7 +92,7 @@ let analyze ~backend:(module Backend : Backend.Data_channels) ~repeats
               with
               | Ok () -> new_id_counter
               | Error log ->
-                  D.persist_logs ~log channels;
+                  Data.persist_logs ~log channels;
                   new_id_counter)
       in
       let _last_sample_id =

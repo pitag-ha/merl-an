@@ -32,9 +32,7 @@ let analyze ~backend (`Filter_outliers filter_outliers) (`Cache cache_workflow)
       exit 100
 
 let performance_term =
-  let backend =
-    (module Merl_an.Backend.Performance : Merl_an.Backend.Data_channels)
-  in
+  let backend = Merl_an.Data.Performance in
   Term.(
     const (analyze ~backend)
     $ Args.filter_outliers $ Args.cache_workflow $ Args.repeats_per_sample
@@ -56,11 +54,11 @@ let behavior =
       =
     let config =
       {
-        Merl_an.Backend.full = not no_full;
+        Merl_an.Data.full = not no_full;
         distilled_data = not no_distilled_data;
       }
     in
-    let backend = Merl_an.Backend.behavior config in
+    let backend = Merl_an.Data.Behavior config in
     analyze ~backend (`Filter_outliers false) (`Cache cache) (`Repeats 1)
   in
   let pre_term = Term.(const f $ Args.no_full $ Args.no_distilled_data) in
@@ -84,9 +82,7 @@ let behavior =
   Cmd.v info behavior_term
 
 let benchmark =
-  let backend =
-    (module Merl_an.Backend.Benchmark : Merl_an.Backend.Data_channels)
-  in
+  let backend = Merl_an.Data.Benchmark in
   let regression_term =
     Term.(
       const (analyze ~backend)
